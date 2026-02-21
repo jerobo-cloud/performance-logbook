@@ -4,543 +4,267 @@
   <meta charset="utf-8" />
   <title>Performance Logbook</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0b1220" />
+
   <style>
-    :root{
-      --bg: #0b1220;
-      --panel: rgba(255,255,255,0.06);
-      --panel2: rgba(255,255,255,0.08);
-      --border: rgba(255,255,255,0.10);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.65);
-      --faint: rgba(255,255,255,0.45);
-      --accent: #3b82f6;
-      --good: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
-      --shadow: 0 10px 30px rgba(0,0,0,0.35);
-      --radius: 16px;
-      --radius2: 12px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    :root {
+      --bg: #0b0f14;
+      --card: #151b23;
+      --muted: #9aa4b2;
+      --text: #e6edf3;
+      --accent: #2f81f7;
+      --good: #3fb950;
+      --border: #30363d;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: var(--sans);
-      background:
-        radial-gradient(1200px 700px at 20% -10%, rgba(59,130,246,0.25), transparent 60%),
-        radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,0.14), transparent 55%),
-        linear-gradient(180deg, #070b14 0%, var(--bg) 25%, #070b14 100%);
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
       color: var(--text);
     }
-    .wrap{
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 22px 16px 56px;
-    }
-    .topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-    h1{
-      margin:0;
+
+    h1 {
       font-size: 28px;
-      letter-spacing:-0.02em;
-      line-height:1.1;
-    }
-    .subtitle{
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      border-radius: 999px;
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .dot{
-      width:8px;height:8px;border-radius:50%;
-      background: var(--good);
-      box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+      margin-bottom: 12px;
     }
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 14px;
-    }
-    @media (max-width: 860px){
-      .grid{grid-template-columns:1fr}
+    h2 {
+      font-size: 18px;
+      margin: 24px 0 8px;
     }
 
-    .card{
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .card-h{
-      padding: 14px 14px 10px;
-      border-bottom: 1px solid var(--border);
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap: 10px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent);
-    }
-    .card-h h2{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: 0.01em;
-      color: rgba(255,255,255,0.88);
-    }
-    .card-h .hint{
-      color: var(--faint);
-      font-size: 12px;
-    }
-    .card-b{
+    .card {
+      background: var(--card);
+      border-radius: 12px;
       padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
     }
 
-    textarea{
-      width:100%;
-      min-height: 210px;
-      resize: vertical;
-      border-radius: var(--radius2);
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(2,6,23,0.7);
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      background: #0f172a;
       color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 12px;
-      font-family: var(--mono);
-      font-size: 13px;
-      line-height: 1.35;
-      outline: none;
-    }
-    textarea:focus{
-      border-color: rgba(59,130,246,0.55);
-      box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 14px;
     }
 
-    .actions{
-      display:flex;
+    .buttons {
+      display: flex;
       gap: 10px;
-      align-items:center;
       margin-top: 10px;
-      flex-wrap:wrap;
+      align-items: center;
     }
-    button{
-      border: none;
+
+    button {
       background: var(--accent);
       color: white;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 700;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
       font-size: 14px;
-      letter-spacing: 0.01em;
     }
-    button:active{ transform: translateY(1px); }
-    .ghost{
-      background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.9);
-      border: 1px solid rgba(255,255,255,0.10);
+
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
     }
-    .status{
+
+    .status {
+      color: var(--good);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .tip {
       font-size: 12px;
       color: var(--muted);
+      margin-top: 6px;
     }
-    .status.good{ color: rgba(34,197,94,0.95); }
-    .status.bad{ color: rgba(239,68,68,0.95); }
 
-    .kpis{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+    .today-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 10px;
     }
-    @media (max-width: 520px){
-      .kpis{ grid-template-columns: 1fr; }
-    }
-    .kpi{
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.05);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .kpi .label{
-      color: var(--faint);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-    .kpi .value{
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-    }
-    .kpi .sub{
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-    }
 
-    .section{
-      margin-top: 12px;
-      display:flex;
-      flex-direction:column;
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
-    .row{
-      display:flex;
-      justify-content:space-between;
-      gap: 14px;
-      padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-      border-radius: 14px;
+
+    .kpi {
+      background: #1c232e;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
     }
-    .row .left{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width: 0;
-    }
-    .row .name{
+
+    .kpi .value {
+      font-size: 22px;
       font-weight: 700;
-      font-size: 13px;
-      color: rgba(255,255,255,0.9);
     }
-    .row .meta{
+
+    .kpi .label {
+      font-size: 12px;
       color: var(--muted);
-      font-size: 12px;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 100%;
-    }
-    .row .right{
-      font-family: var(--mono);
-      font-size: 12px;
-      color: rgba(255,255,255,0.85);
-      white-space:nowrap;
-      align-self:center;
     }
 
-    .badges{ display:flex; gap:8px; flex-wrap:wrap; }
-    .badge{
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.88);
-      padding: 8px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
+    .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-top: 6px;
+      color: var(--muted);
     }
-    .badge.good{
-      border-color: rgba(34,197,94,0.35);
-      background: rgba(34,197,94,0.12);
-    }
-    .badge.bad{
-      border-color: rgba(239,68,68,0.35);
-      background: rgba(239,68,68,0.10);
-    }
-    .badge .mini{
-      width:8px;height:8px;border-radius:50%;
-      background: rgba(255,255,255,0.35);
-    }
-    .badge.good .mini{ background: var(--good); }
-    .badge.bad .mini{ background: var(--bad); }
 
-    .footer-note{
-      margin-top: 14px;
-      color: var(--faint);
-      font-size: 12px;
-      line-height: 1.35;
+    .bench {
+      font-family: ui-monospace, monospace;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="title">
-        <h1>Performance Logbook</h1>
-        <div class="subtitle">Paste your nightly snapshot, tap Import, and review today’s signal.</div>
-      </div>
-      <div class="pill"><span class="dot"></span><span id="buildStatus">Live</span></div>
+  <h1>Performance Logbook</h1>
+
+  <div class="card">
+    <h2>Import Nightly Snapshot</h2>
+    <textarea id="input"></textarea>
+
+    <div class="buttons">
+      <button onclick="importSnapshot()">Import</button>
+      <button class="ghost" onclick="loadSample()">Load sample</button>
+      <span id="status" class="status"></span>
     </div>
 
-    <div class="grid">
-      <!-- Import -->
-      <div class="card">
-        <div class="card-h">
-          <h2>Import Nightly Snapshot</h2>
-          <div class="hint">Format: @day / @run / @lift / @notes</div>
-        </div>
-        <div class="card-b">
-          <textarea id="input" placeholder="@day YYYY-MM-DD&#10;weight: 182.6&#10;calories: 2100&#10;protein: 155&#10;&#10;@run&#10;type: easy&#10;distance_mi: 3.5&#10;duration: 38:00&#10;avg_pace: 10:51&#10;avg_hr: 153&#10;max_hr: 165&#10;&#10;@lift&#10;bench_press: 200x5, 185x8&#10;"></textarea>
-
-          <div class="actions">
-            <button onclick="importSnapshot()">Import</button>
-            <button class="ghost" onclick="loadSample()">Load sample</button>
-            <div id="status" class="status"></div>
-          </div>
-
-          <div class="footer-note">
-            Tip: Use <span style="font-family:var(--mono)">na</span> if you didn’t log a value. Bench milestones require <b>5+ reps</b> to count.
-          </div>
-        </div>
-      </div>
-
-      <!-- Today -->
-      <div class="card">
-        <div class="card-h">
-          <h2>Today</h2>
-          <div class="hint" id="todayDate">—</div>
-        </div>
-        <div class="card-b">
-          <div class="kpis">
-            <div class="kpi">
-              <div class="label">Weight</div>
-              <div class="value" id="kpiWeight">—</div>
-              <div class="sub" id="kpiWeightSub">lbs</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Calories</div>
-              <div class="value" id="kpiCalories">—</div>
-              <div class="sub">kcal</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Protein</div>
-              <div class="value" id="kpiProtein">—</div>
-              <div class="sub">g</div>
-            </div>
-          </div>
-
-          <div class="section">
-            <div class="row" id="runRow" style="display:none;">
-              <div class="left">
-                <div class="name">Run</div>
-                <div class="meta" id="runMeta">—</div>
-              </div>
-              <div class="right" id="runRight">—</div>
-            </div>
-
-            <div class="row" id="liftRow" style="display:none;">
-              <div class="left">
-                <div class="name">Lift</div>
-                <div class="meta" id="liftMeta">—</div>
-              </div>
-              <div class="right" id="liftRight">—</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bench goals -->
-      <div class="card">
-        <div class="card-h">
-          <h2>Bench Goals</h2>
-          <div class="hint">Est 1RM + milestones</div>
-        </div>
-        <div class="card-b">
-          <div class="kpis" style="grid-template-columns:1fr;">
-            <div class="kpi">
-              <div class="label">Estimated 1RM</div>
-              <div class="value" id="est1rm">—</div>
-              <div class="sub">Epley formula</div>
-            </div>
-          </div>
-
-          <div class="badges">
-            <div class="badge" id="b200"><span class="mini"></span>200 × 5+</div>
-            <div class="badge" id="b225"><span class="mini"></span>225 × 5+</div>
-          </div>
-
-          <div class="footer-note" id="benchNote">Import a snapshot with <span style="font-family:var(--mono)">bench_press</span> to evaluate.</div>
-        </div>
-      </div>
-
-      <!-- Details -->
-      <div class="card">
-        <div class="card-h">
-          <h2>Details</h2>
-          <div class="hint">What the app parsed</div>
-        </div>
-        <div class="card-b">
-          <pre id="debug" style="margin:0; font-family:var(--mono); font-size:12px; color:rgba(255,255,255,0.85); background:rgba(2,6,23,0.55); border:1px solid rgba(255,255,255,0.10); border-radius:14px; padding:12px; overflow:auto;">—</pre>
-        </div>
-      </div>
+    <div class="tip">
+      Tip: use <code>na</code> if you didn’t log a value. Bench milestones require <strong>5+ reps</strong>.
     </div>
   </div>
 
+  <div class="card">
+    <div class="today-header">
+      <h2>Today</h2>
+      <span id="todayDate" class="muted">—</span>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div id="weight" class="value">—</div>
+        <div class="label">lbs</div>
+      </div>
+      <div class="kpi">
+        <div id="calories" class="value">—</div>
+        <div class="label">kcal</div>
+      </div>
+      <div class="kpi">
+        <div id="protein" class="value">—</div>
+        <div class="label">g</div>
+      </div>
+    </div>
+
+    <div id="runRow" class="row"></div>
+    <div id="liftRow" class="row"></div>
+  </div>
+
+  <div class="card">
+    <h2>Bench Goals</h2>
+    <div id="bench" class="bench"></div>
+  </div>
+
 <script>
-  function epley(w,r){ return w*(1+r/30); }
+function epley(w, r) {
+  return Math.round(w * (1 + r / 30));
+}
 
-  function parseSnapshot(text){
-    const lines = text.split('\n').map(l=>l.trim()).filter(l => l.length>0);
-    const out = { day:{}, run:null, lift:{sets:[]}, notes:'' };
-    let section = '';
+function importSnapshot() {
+  const text = document.getElementById('input').value;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-    for (const line of lines){
-      if (line.startsWith('@')){
-        section = line.slice(1).toLowerCase();
-        continue;
-      }
+  let section = null;
+  const day = {};
+  const run = {};
+  const lifts = {};
 
-      if (section === 'day'){
-        const idx = line.indexOf(':');
-        if (idx === -1) continue;
-        const k = line.slice(0,idx).trim();
-        const v = line.slice(idx+1).trim();
-        if (k) out.day[k]=v;
-        continue;
-      }
-
-      if (section === 'run'){
-        out.run ??= {};
-        const idx = line.indexOf(':');
-        if (idx === -1) continue;
-        const k = line.slice(0,idx).trim();
-        const v = line.slice(idx+1).trim();
-        if (k) out.run[k]=v;
-        continue;
-      }
-
-      if (section === 'lift'){
-        const idx = line.indexOf(':');
-        if (idx === -1) continue;
-        const exercise = line.slice(0,idx).trim();
-        const rest = line.slice(idx+1).trim();
-        if (!exercise) continue;
-
-        rest.split(',').map(s=>s.trim()).forEach(s=>{
-          const m = s.match(/^(\d+|bw)x(\d+|AMRAP)$/i);
-          if (!m) return;
-          out.lift.sets.push({
-            exercise,
-            weight: (m[1].toLowerCase()==='bw') ? null : Number(m[1]),
-            reps: (String(m[2]).toUpperCase()==='AMRAP') ? null : Number(m[2]),
-            type: 'work'
-          });
-        });
-        continue;
-      }
-
-      if (section === 'notes'){
-        out.notes += line + ' ';
-      }
+  for (const line of lines) {
+    if (line.startsWith('@')) {
+      section = line.replace('@', '');
+      continue;
     }
-    return out;
+
+    const [key, raw] = line.split(':').map(s => s.trim());
+    if (!key || !raw) continue;
+
+    if (section === 'day') day[key] = raw;
+    if (section === 'run') run[key] = raw;
+    if (section === 'lift') lifts[key] = raw;
   }
 
-  function evaluateBench(sets){
-    let est1rm = null;
-    let hit200 = false, hit225=false;
+  // Date
+  const dateMatch = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+  document.getElementById('todayDate').textContent = dateMatch ? dateMatch[1] : '—';
 
-    for (const s of sets){
-      if (s.exercise !== 'bench_press') continue;
-      if (typeof s.weight === 'number' && typeof s.reps === 'number'){
-        est1rm = Math.max(est1rm ?? 0, epley(s.weight, s.reps));
-        if (s.reps >= 5 && s.weight >= 200) hit200 = true;
-        if (s.reps >= 5 && s.weight >= 225) hit225 = true;
-      }
-    }
-    return { est1rm, hit200, hit225 };
+  // KPIs
+  document.getElementById('weight').textContent = day.weight ?? '—';
+  document.getElementById('calories').textContent = day.calories ?? '—';
+  document.getElementById('protein').textContent = day.protein ?? '—';
+
+  // Run
+  const runRow = document.getElementById('runRow');
+  if (run.distance_mi && run.avg_pace) {
+    runRow.textContent =
+      `${run.type ?? 'run'} • ${run.distance_mi} mi • pace ${run.avg_pace} • HR ${run.avg_hr ?? '—'}`;
+  } else {
+    runRow.textContent = '';
   }
 
-  function setStatus(msg, type){
-    const el = document.getElementById('status');
-    el.textContent = msg || '';
-    el.className = 'status ' + (type || '');
+  // Lift
+  const liftKeys = Object.keys(lifts);
+  const liftRow = document.getElementById('liftRow');
+  liftRow.textContent = liftKeys.length
+    ? `Lift • ${liftKeys.join(', ')}`
+    : '';
+
+  // Bench goals
+  let est1RM = '—';
+  let hit200 = false;
+  let hit225 = false;
+
+  if (lifts.bench_press) {
+    const sets = lifts.bench_press.split(',').map(s => {
+      const [w, r] = s.trim().split('x').map(Number);
+      return { w, r };
+    });
+
+    const top = sets.reduce((a, b) => (b.w > a.w ? b : a), sets[0]);
+    est1RM = epley(top.w, top.r);
+
+    hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+    hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
   }
 
-  function fmtOrDash(v){ return (v===undefined || v===null || v==='') ? '—' : v; }
+  document.getElementById('bench').textContent =
+`Estimated 1RM: ${est1RM}
+200 × 5+: ${hit200}
+225 × 5+: ${hit225}`;
 
-  function importSnapshot(){
-    try{
-      const text = document.getElementById('input').value;
-      const parsed = parseSnapshot(text);
+  document.getElementById('status').textContent = 'Imported ✓';
+}
 
-      // ✅ CORRECTED DATE + DAY KPI BINDING
-      const dateMatch = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
-      const date = dateMatch ? dateMatch[1] : '—';
-      document.getElementById('todayDate').textContent = date;
-
-      const w = parsed.day.weight;
-      const c = parsed.day.calories;
-      const p = parsed.day.protein;
-
-      document.getElementById('kpiWeight').textContent = fmtOrDash(w);
-      document.getElementById('kpiCalories').textContent = fmtOrDash(c);
-      document.getElementById('kpiProtein').textContent = fmtOrDash(p);
-
-      // Run row
-      const runRow = document.getElementById('runRow');
-      if (parsed.run){
-        runRow.style.display = 'flex';
-        const type = parsed.run.type || 'run';
-        const dist = parsed.run.distance_mi || '—';
-        const pace = parsed.run.avg_pace || '—';
-        const hr = parsed.run.avg_hr || '—';
-        document.getElementById('runMeta').textContent = `${type} • ${dist} mi • pace ${pace}`;
-        document.getElementById('runRight').textContent = `HR ${hr}`;
-      } else {
-        runRow.style.display = 'none';
-      }
-
-      // Lift row (basic summary)
-      const liftRow = document.getElementById('liftRow');
-      const exercises = [...new Set(parsed.lift.sets.map(s=>s.exercise))];
-      if (exercises.length){
-        liftRow.style.display = 'flex';
-        document.getElementById('liftMeta').textContent =
-          exercises.slice(0,4).join(', ') + (exercises.length>4?'…':'');
-        const benchSets = parsed.lift.sets.filter(s=>s.exercise==='bench_press');
-        document.getElementById('liftRight').textContent =
-          benchSets.length ? `bench sets ${benchSets.length}` : `${parsed.lift.sets.length} sets`;
-      } else {
-        liftRow.style.display = 'none';
-      }
-
-      // Bench goals
-      const bench = evaluateBench(parsed.lift.sets);
-      document.getElementById('est1rm').textContent = (bench.est1rm==null) ? '—' : String(Math.round(bench.est1rm));
-      const b200 = document.getElementById('b200');
-      const b225 = document.getElementById('b225');
-      b200.className = 'badge ' + (bench.hit200 ? 'good' : 'bad');
-      b225.className = 'badge ' + (bench.hit225 ? 'good' : 'bad');
-      document.getElementById('benchNote').textContent =
-        bench.est1rm==null ? 'Import a snapshot with bench_press sets to evaluate.' : 'Bench evaluated from today’s work sets.';
-
-      // Debug
-      document.getElementById('debug').textContent = JSON.stringify(parsed, null, 2);
-
-      setStatus('Imported ✔', 'good');
-    } catch (e){
-      setStatus('Import failed: ' + e.message, 'bad');
-    }
-  }
-
-  function loadSample(){
-    document.getElementById('input').value =
+function loadSample() {
+  document.getElementById('input').value =
 `@day 2026-02-21
 weight: 182.0
 calories: 2100
@@ -552,19 +276,10 @@ distance_mi: 3.5
 duration: 38:00
 avg_pace: 10:51
 avg_hr: 153
-max_hr: 165
 
 @lift
-bench_press: 200x5, 185x8, 175x8
-seated_row: 140x10, 140x9
-leg_press: 285x12, 305x8
-ez_bar_curl: 60x10, 60x9
-
-@notes
-Felt good.`;
-    setStatus('Sample loaded', '');
-  }
+bench_press: 200x5, 185x8, 175x10`;
+}
 </script>
-
 </body>
 </html>
