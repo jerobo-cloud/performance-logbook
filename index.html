@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <title>Performance Logbook</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <style>
   :root {
     --bg: #0b0f14;
@@ -13,9 +12,9 @@
     --text: #e6edf3;
     --accent: #3b82f6;
     --success: #22c55e;
+    --danger: #ef4444;
     --radius: 14px;
   }
-
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -24,9 +23,8 @@
     color: var(--text);
     padding: 16px;
   }
-
-  h1 { font-size: 26px; margin-bottom: 6px; }
-  h2 { font-size: 18px; margin: 0 0 10px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 
   .card {
     background: linear-gradient(180deg, #1a2029, var(--card));
@@ -34,6 +32,7 @@
     padding: 14px;
     margin-bottom: 14px;
   }
+  h2 { font-size: 18px; margin: 0 0 10px; }
 
   textarea {
     width: 100%;
@@ -43,8 +42,9 @@
     border: 1px solid #253042;
     border-radius: 10px;
     padding: 10px;
-    font-family: ui-monospace, monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     font-size: 14px;
+    line-height: 1.35;
   }
 
   button {
@@ -53,57 +53,95 @@
     border: none;
     border-radius: 10px;
     padding: 10px 14px;
-    font-weight: 600;
+    font-weight: 650;
     margin-right: 8px;
   }
-
   button.secondary {
     background: #253042;
   }
 
   .muted { color: var(--muted); font-size: 13px; }
-  .success { color: var(--success); font-weight: 600; }
+  .success { color: var(--success); font-weight: 650; }
+  .danger { color: var(--danger); font-weight: 650; }
 
   .row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
   }
-
   .stat {
     background: #1d2430;
     border-radius: 12px;
     padding: 12px;
     text-align: center;
   }
-
-  .stat .value { font-size: 22px; font-weight: 700; }
+  .stat .value { font-size: 22px; font-weight: 750; }
   .stat .label { font-size: 12px; color: var(--muted); }
 
   .chip {
     background: #1d2430;
     border-radius: 999px;
-    padding: 8px 12px;
-    margin-top: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
     font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .collapsed { display: none; }
+
+  code {
+    background:#0f1520;
+    border:1px solid #253042;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .trendBlock {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .trendItem {
+    background:#1d2430;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .trendItem .tTitle { font-weight: 750; margin-bottom: 6px; }
+  .trendItem .tLine { color: var(--muted); font-size: 13px; line-height: 1.35; }
 </style>
 </head>
 
 <body>
 
 <h1>Performance Logbook</h1>
-<div class="muted">Paste nightly snapshot, import, review today & trends.</div>
+<div class="sub">Paste nightly snapshot, import, review today & trends.</div>
 
 <!-- IMPORT -->
 <div class="card" id="importCard">
   <h2>Import</h2>
-  <textarea id="input"></textarea>
+  <textarea id="input" placeholder="@day 2026-02-21
+weight: 182.0
+calories: 2100
+protein: 155
+
+@run
+type: easy
+distance_mi: 3.5
+duration: 38:00
+avg_pace: 10:51
+avg_hr: 153
+
+@lift
+bench_press: 200x5, 185x8, 175x10"></textarea>
   <div style="margin-top:10px">
     <button onclick="importSnapshot()">Import</button>
     <button class="secondary" onclick="loadSample()">Load sample</button>
+    <button class="secondary" onclick="showImport()">Edit</button>
     <span id="importStatus" class="success"></span>
   </div>
   <div class="muted" style="margin-top:6px">
@@ -130,92 +168,329 @@
     </div>
   </div>
 
-  <div class="chip" id="runChip"></div>
-  <div class="chip" id="liftChip"></div>
+  <div class="chip" id="runChip">Run · —</div>
+  <div class="chip" id="liftChip">Lift · —</div>
 </div>
 
-<!-- TRENDS (placeholder) -->
+<!-- TRENDS -->
 <div class="card">
   <h2>Trends</h2>
-  <div class="muted">Weight, aerobic pace, and bench 1RM trends coming next.</div>
+  <div class="trendBlock">
+    <div class="trendItem">
+      <div class="tTitle">Weight</div>
+      <div class="tLine" id="trendWeight">—</div>
+    </div>
+    <div class="trendItem">
+      <div class="tTitle">Run (pace @ avg HR ≤ 160)</div>
+      <div class="tLine" id="trendRun">—</div>
+    </div>
+    <div class="trendItem">
+      <div class="tTitle">Bench</div>
+      <div class="tLine" id="trendBench">—</div>
+    </div>
+  </div>
 </div>
 
 <!-- RUN GOALS -->
 <div class="card">
   <h2>Run Goals</h2>
-  <div class="muted">
-    Avg pace ≤ goal pace <br>
-    Avg HR ≤ 160
-  </div>
-  <div class="chip">Goal 1: 9:30 /mi</div>
-  <div class="chip">Goal 2: 9:00 /mi</div>
+  <div class="muted">Meeting goal = avg pace ≤ goal pace AND avg HR ≤ 160.</div>
+  <div class="chip" id="goal930">Goal 1: 9:30 /mi · —</div>
+  <div class="chip" id="goal900">Goal 2: 9:00 /mi · —</div>
 </div>
 
 <!-- LIFT GOALS -->
 <div class="card">
   <h2>Bench Goals</h2>
-  <div class="chip" id="benchGoals"></div>
+  <div class="chip" id="benchGoals">—</div>
 </div>
 
 <script>
-let data = {};
+  // ---------- helpers ----------
+  function clean(v){
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    if (s.toLowerCase() === 'na') return null;
+    return s;
+  }
 
-function epley(w, r) {
-  return Math.round(w * (1 + r / 30));
-}
+  function epley(w, r) {
+    return Math.round(w * (1 + r / 30));
+  }
 
-function importSnapshot() {
-  const lines = document.getElementById('input').value
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean);
+  function paceToSeconds(paceStr){
+    // expects "M:SS" or "MM:SS"
+    const s = clean(paceStr);
+    if (!s) return null;
+    const m = s.match(/^(\d+):([0-5]\d)$/);
+    if (!m) return null;
+    return Number(m[1]) * 60 + Number(m[2]);
+  }
 
-  let section = null;
-  data = { day:{}, run:{}, lift:{} };
+  function secondsToPace(sec){
+    if (sec == null || !isFinite(sec)) return null;
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
 
-  for (const line of lines) {
-    if (line.startsWith('@')) {
-      section = line.slice(1).trim().split(/\s+/)[0];
-      continue;
+  function avg(nums){
+    if (!nums.length) return null;
+    return nums.reduce((a,b)=>a+b,0)/nums.length;
+  }
+
+  function loadLog(){
+    try{
+      const raw = localStorage.getItem('plog_days');
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch{
+      return [];
+    }
+  }
+
+  function saveLog(arr){
+    localStorage.setItem('plog_days', JSON.stringify(arr));
+  }
+
+  function upsertDay(entry){
+    const log = loadLog();
+    const idx = log.findIndex(d => d.date === entry.date);
+    if (idx >= 0) log[idx] = entry;
+    else log.push(entry);
+
+    // sort by date asc (YYYY-MM-DD sorts naturally)
+    log.sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+    saveLog(log);
+    return log;
+  }
+
+  function showImport(){
+    document.getElementById('importCard').classList.remove('collapsed');
+    document.getElementById('importStatus').textContent = '';
+  }
+
+  // ---------- parsing ----------
+  function parseSnapshot(text){
+    const lines = text.split('\n').map(l => l.trim());
+    let section = null;
+
+    const day = {};
+    const run = {};
+    const lift = {};
+
+    // pull date from "@day YYYY-MM-DD" (preferred)
+    const dm = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+    const date = dm ? dm[1] : null;
+
+    for (const line of lines) {
+      if (!line) continue;
+      if (line.startsWith('@')) {
+        section = line.slice(1).trim().split(/\s+/)[0].toLowerCase();
+        continue;
+      }
+      const idx = line.indexOf(':');
+      if (idx === -1) continue;
+      const k = line.slice(0, idx).trim();
+      const v = clean(line.slice(idx+1).trim());
+      if (!k || v == null) continue;
+
+      if (section === 'day') day[k] = v;
+      if (section === 'run') run[k] = v;
+      if (section === 'lift') lift[k] = v;
     }
 
-    const [k, v] = line.split(':').map(x => x.trim());
-    if (!k || v === undefined) continue;
-    data[section][k] = v;
+    return { date: date || (day.date || '—'), day, run, lift };
   }
 
-  render();
-  document.getElementById('importStatus').textContent = 'Imported ✓';
-  document.getElementById('importCard').classList.add('collapsed');
-}
+  // ---------- rendering ----------
+  function renderToday(parsed){
+    const date = parsed.date || '—';
+    document.getElementById('todayDate').textContent = date;
 
-function render() {
-  document.getElementById('todayDate').textContent = data.day?.date || '';
-  document.getElementById('w').textContent = data.day?.weight ?? '—';
-  document.getElementById('c').textContent = data.day?.calories ?? '—';
-  document.getElementById('p').textContent = data.day?.protein ?? '—';
+    document.getElementById('w').textContent = parsed.day.weight ?? '—';
+    document.getElementById('c').textContent = parsed.day.calories ?? '—';
+    document.getElementById('p').textContent = parsed.day.protein ?? '—';
 
-  if (data.run?.avg_pace) {
-    document.getElementById('runChip').textContent =
-      `Run · ${data.run.type} · ${data.run.distance_mi} mi · pace ${data.run.avg_pace} · HR ${data.run.avg_hr}`;
-  }
+    // IMPORTANT: avg_pace is a STRING and must be displayed verbatim (no rounding)
+    const run = parsed.run || {};
+    if (run.type || run.distance_mi || run.avg_pace || run.avg_hr) {
+      const t = run.type ?? 'run';
+      const dist = run.distance_mi ? `${run.distance_mi} mi` : '— mi';
+      const pace = run.avg_pace ? `${run.avg_pace}` : '—';
+      const hr = run.avg_hr ? `${run.avg_hr}` : '—';
+      document.getElementById('runChip').textContent =
+        `Run · ${t} · ${dist} · pace ${pace} · HR ${hr}`;
+    } else {
+      document.getElementById('runChip').textContent = 'Run · —';
+    }
 
-  if (data.lift?.bench_press) {
-    const [w, r] = data.lift.bench_press.split('x').map(Number);
-    const est = epley(w, r);
-    const hit200 = w >= 200 && r >= 5;
-    const hit225 = w >= 225 && r >= 5;
+    const lift = parsed.lift || {};
+    const liftKeys = Object.keys(lift).filter(k => k !== 'bench_press');
+    const hasBench = !!lift.bench_press;
+
+    let liftLabel = [];
+    if (hasBench) liftLabel.push('bench_press');
+    liftLabel.push(...liftKeys);
 
     document.getElementById('liftChip').textContent =
-      `Lift · bench_press`;
+      liftLabel.length ? `Lift · ${liftLabel.join(', ')}` : 'Lift · —';
 
-    document.getElementById('benchGoals').textContent =
-      `Estimated 1RM: ${est} · 200×5+: ${hit200} · 225×5+: ${hit225}`;
+    // bench goals
+    renderBenchGoals(lift);
+    renderRunGoals(run);
   }
-}
 
-function loadSample() {
-  document.getElementById('input').value =
+  function renderBenchGoals(lift){
+    let est = null;
+    let hit200 = false;
+    let hit225 = false;
+
+    if (lift && lift.bench_press) {
+      const sets = lift.bench_press.split(',')
+        .map(s => s.trim())
+        .map(s => {
+          const m = s.match(/^(\d+)\s*x\s*(\d+)$/i);
+          if (!m) return null;
+          return { w: Number(m[1]), r: Number(m[2]) };
+        })
+        .filter(Boolean);
+
+      if (sets.length){
+        est = Math.max(...sets.map(s => epley(s.w, s.r)));
+        hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+        hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
+      }
+    }
+
+    const txt = (est == null)
+      ? 'Estimated 1RM: — · 200×5+: — · 225×5+: —'
+      : `Estimated 1RM: ${est} · 200×5+: ${hit200} · 225×5+: ${hit225}`;
+
+    document.getElementById('benchGoals').textContent = txt;
+  }
+
+  function renderRunGoals(run){
+    const paceSec = paceToSeconds(run.avg_pace);
+    const hr = run.avg_hr ? Number(run.avg_hr) : null;
+
+    const qualifiesHR = (hr != null && hr <= 160);
+
+    function goalLine(goalPaceStr){
+      const g = paceToSeconds(goalPaceStr);
+      if (paceSec == null || hr == null) return '—';
+      const meets = (qualifiesHR && paceSec <= g);
+      return meets ? 'Met ✓' : 'Not yet';
+    }
+
+    document.getElementById('goal930').textContent = `Goal 1: 9:30 /mi · ${goalLine('9:30')}`;
+    document.getElementById('goal900').textContent = `Goal 2: 9:00 /mi · ${goalLine('9:00')}`;
+  }
+
+  function renderTrends(log){
+    // last 7 entries
+    const last7 = log.slice(-7);
+
+    // Weight trend
+    const weights = last7.map(d => Number(d.weight)).filter(x => isFinite(x));
+    const wAvg = avg(weights);
+    const wLast = (weights.length ? weights[weights.length-1] : null);
+    document.getElementById('trendWeight').textContent =
+      (wAvg == null)
+        ? 'No data yet.'
+        : `Last: ${wLast.toFixed(1)} lbs · 7-day avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
+
+    // Run trend (qualifying runs HR<=160)
+    const qRuns = log
+      .filter(d => d.run && d.run.avg_hr != null && d.run.avg_pace)
+      .map(d => ({
+        date: d.date,
+        hr: Number(d.run.avg_hr),
+        paceStr: d.run.avg_pace,
+        paceSec: paceToSeconds(d.run.avg_pace)
+      }))
+      .filter(x => isFinite(x.hr) && x.hr <= 160 && x.paceSec != null);
+
+    const lastQ = qRuns.length ? qRuns[qRuns.length - 1] : null;
+    const bestQ = qRuns.length ? qRuns.reduce((best, cur) => cur.paceSec < best.paceSec ? cur : best, qRuns[0]) : null;
+
+    document.getElementById('trendRun').textContent =
+      (!qRuns.length)
+        ? 'No qualifying runs yet (avg HR ≤ 160).'
+        : `Last qualifying: ${lastQ.date} · pace ${lastQ.paceStr} · HR ${lastQ.hr} | Best: ${bestQ.paceStr} (${bestQ.date})`;
+
+    // Bench trend (best est1rm)
+    const benches = log
+      .filter(d => d.bench && d.bench.est1rm != null)
+      .map(d => ({ date: d.date, est1rm: Number(d.bench.est1rm) }))
+      .filter(x => isFinite(x.est1rm));
+
+    const lastB = benches.length ? benches[benches.length-1] : null;
+    const bestB = benches.length ? benches.reduce((best, cur) => cur.est1rm > best.est1rm ? cur : best, benches[0]) : null;
+
+    document.getElementById('trendBench').textContent =
+      (!benches.length)
+        ? 'No bench data yet.'
+        : `Last: ${lastB.est1rm} (on ${lastB.date}) · Best: ${bestB.est1rm} (on ${bestB.date}) · entries: ${benches.length}`;
+  }
+
+  // ---------- import flow ----------
+  function importSnapshot(){
+    try{
+      const text = document.getElementById('input').value;
+      const parsed = parseSnapshot(text);
+
+      // build entry for log
+      const entry = {
+        date: parsed.date,
+        weight: parsed.day.weight ? Number(parsed.day.weight) : null,
+        calories: parsed.day.calories ? Number(parsed.day.calories) : null,
+        protein: parsed.day.protein ? Number(parsed.day.protein) : null,
+        run: {
+          type: parsed.run.type ?? null,
+          distance_mi: parsed.run.distance_mi ? Number(parsed.run.distance_mi) : null,
+          duration: parsed.run.duration ?? null,
+          avg_pace: parsed.run.avg_pace ?? null, // keep string
+          avg_hr: parsed.run.avg_hr ? Number(parsed.run.avg_hr) : null
+        },
+        bench: null
+      };
+
+      // compute bench summary if present
+      if (parsed.lift && parsed.lift.bench_press){
+        const sets = parsed.lift.bench_press.split(',')
+          .map(s => s.trim())
+          .map(s => {
+            const m = s.match(/^(\d+)\s*x\s*(\d+)$/i);
+            if (!m) return null;
+            return { w: Number(m[1]), r: Number(m[2]) };
+          })
+          .filter(Boolean);
+
+        if (sets.length){
+          const est1rm = Math.max(...sets.map(s => epley(s.w, s.r)));
+          const hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+          const hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
+          entry.bench = { est1rm, hit200, hit225 };
+        }
+      }
+
+      // upsert and re-render
+      const log = upsertDay(entry);
+      renderToday(parsed);
+      renderTrends(log);
+
+      document.getElementById('importStatus').textContent = 'Imported ✓';
+      document.getElementById('importCard').classList.add('collapsed');
+    }catch(e){
+      document.getElementById('importStatus').textContent = 'Import failed';
+      document.getElementById('importStatus').className = 'danger';
+    }
+  }
+
+  function loadSample(){
+    document.getElementById('input').value =
 `@day 2026-02-21
 weight: 182.0
 calories: 2100
@@ -229,8 +504,14 @@ avg_pace: 10:51
 avg_hr: 153
 
 @lift
-bench_press: 200x5`;
-}
+bench_press: 200x5, 185x8, 175x10`;
+  }
+
+  // ---------- init ----------
+  (function init(){
+    const log = loadLog();
+    renderTrends(log);
+  })();
 </script>
 
 </body>
