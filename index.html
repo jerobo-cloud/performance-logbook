@@ -15,9 +15,7 @@
       --good: #3fb950;
       --border: #30363d;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       padding: 16px;
@@ -25,17 +23,8 @@
       background: var(--bg);
       color: var(--text);
     }
-
-    h1 {
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-
-    h2 {
-      font-size: 18px;
-      margin: 24px 0 8px;
-    }
-
+    h1 { font-size: 28px; margin-bottom: 12px; }
+    h2 { font-size: 18px; margin: 24px 0 8px; }
     .card {
       background: var(--card);
       border-radius: 12px;
@@ -43,7 +32,6 @@
       margin-bottom: 12px;
       border: 1px solid var(--border);
     }
-
     textarea {
       width: 100%;
       min-height: 160px;
@@ -55,14 +43,13 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 14px;
     }
-
     .buttons {
       display: flex;
       gap: 10px;
       margin-top: 10px;
       align-items: center;
+      flex-wrap: wrap;
     }
-
     button {
       background: var(--accent);
       color: white;
@@ -72,67 +59,62 @@
       font-weight: 600;
       font-size: 14px;
     }
-
     .ghost {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text);
     }
-
     .status {
       color: var(--good);
       font-size: 14px;
       font-weight: 600;
     }
-
     .tip {
       font-size: 12px;
       color: var(--muted);
       margin-top: 6px;
     }
-
     .today-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
     }
-
     .kpis {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
     }
-
     .kpi {
       background: #1c232e;
       border-radius: 10px;
       padding: 12px;
       text-align: center;
     }
-
     .kpi .value {
       font-size: 22px;
       font-weight: 700;
     }
-
     .kpi .label {
       font-size: 12px;
       color: var(--muted);
     }
-
     .row {
       display: flex;
       justify-content: space-between;
       font-size: 14px;
-      margin-top: 6px;
+      margin-top: 8px;
       color: var(--muted);
+      gap: 10px;
+      flex-wrap: wrap;
     }
-
     .bench {
       font-family: ui-monospace, monospace;
       font-size: 14px;
+      white-space: pre-wrap;
+      line-height: 1.35;
     }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   </style>
 </head>
 
@@ -141,7 +123,20 @@
 
   <div class="card">
     <h2>Import Nightly Snapshot</h2>
-    <textarea id="input"></textarea>
+    <textarea id="input" placeholder="@day 2026-02-21
+weight: 182.0
+calories: 2100
+protein: 155
+
+@run
+type: easy
+distance_mi: 3.5
+duration: 38:00
+avg_pace: 10:51
+avg_hr: 153
+
+@lift
+bench_press: 200x5, 185x8, 175x10"></textarea>
 
     <div class="buttons">
       <button onclick="importSnapshot()">Import</button>
@@ -157,7 +152,7 @@
   <div class="card">
     <div class="today-header">
       <h2>Today</h2>
-      <span id="todayDate" class="muted">—</span>
+      <span id="todayDate">—</span>
     </div>
 
     <div class="kpis">
@@ -185,86 +180,114 @@
   </div>
 
 <script>
-function epley(w, r) {
-  return Math.round(w * (1 + r / 30));
-}
+  function epley(w, r) {
+    return Math.round(w * (1 + r / 30));
+  }
 
-function importSnapshot() {
-  const text = document.getElementById('input').value;
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  // small helper: treat "na" (case-insensitive) as missing
+  function cleanValue(v) {
+    if (v == null) return null;
+    const s = String(v).trim();
+    if (s === '') return null;
+    if (s.toLowerCase() === 'na') return null;
+    return s;
+  }
 
-  let section = null;
-  const day = {};
-  const run = {};
-  const lifts = {};
+  function importSnapshot() {
+    const text = document.getElementById('input').value;
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  for (const line of lines) {
-    if (line.startsWith('@')) {
-      section = line.replace('@', '');
-      continue;
+    let section = null;
+    const day = {};
+    const run = {};
+    const lifts = {};
+
+    for (const line of lines) {
+      if (line.startsWith('@')) {
+        // ✅ FIX: "@day 2026-02-21" becomes "day"
+        const header = line.slice(1).trim();          // remove "@"
+        section = header.split(/\s+/)[0].toLowerCase(); // take first word only
+        continue;
+      }
+
+      const idx = line.indexOf(':');
+      if (idx === -1) continue;
+
+      const key = line.slice(0, idx).trim();
+      const raw = line.slice(idx + 1).trim();
+      const val = cleanValue(raw);
+
+      if (!key) continue;
+      if (val === null) continue;
+
+      if (section === 'day') day[key] = val;
+      if (section === 'run') run[key] = val;
+      if (section === 'lift') lifts[key] = val;
     }
 
-    const [key, raw] = line.split(':').map(s => s.trim());
-    if (!key || !raw) continue;
+    // Date: prefer the @day header date if present
+    const dateMatch = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+    const date = dateMatch ? dateMatch[1] : (day.date ?? '—');
+    document.getElementById('todayDate').textContent = date;
 
-    if (section === 'day') day[key] = raw;
-    if (section === 'run') run[key] = raw;
-    if (section === 'lift') lifts[key] = raw;
-  }
+    // KPIs (exact values, no rounding)
+    document.getElementById('weight').textContent = day.weight ?? '—';
+    document.getElementById('calories').textContent = day.calories ?? '—';
+    document.getElementById('protein').textContent = day.protein ?? '—';
 
-  // Date
-  const dateMatch = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
-  document.getElementById('todayDate').textContent = dateMatch ? dateMatch[1] : '—';
+    // Run row (exact strings as provided)
+    const runRow = document.getElementById('runRow');
+    if (run.distance_mi || run.avg_pace || run.avg_hr) {
+      const type = run.type ?? 'run';
+      const dist = run.distance_mi ? `${run.distance_mi} mi` : '';
+      const pace = run.avg_pace ? `pace ${run.avg_pace}` : '';
+      const hr = run.avg_hr ? `HR ${run.avg_hr}` : '';
+      const parts = [type, dist, pace].filter(Boolean).join(' • ');
+      runRow.textContent = `${parts}${hr ? ' • ' + hr : ''}`;
+    } else {
+      runRow.textContent = '';
+    }
 
-  // KPIs
-  document.getElementById('weight').textContent = day.weight ?? '—';
-  document.getElementById('calories').textContent = day.calories ?? '—';
-  document.getElementById('protein').textContent = day.protein ?? '—';
+    // Lift row (list the lift keys we saw)
+    const liftKeys = Object.keys(lifts);
+    const liftRow = document.getElementById('liftRow');
+    liftRow.textContent = liftKeys.length ? `Lift • ${liftKeys.join(', ')}` : '';
 
-  // Run
-  const runRow = document.getElementById('runRow');
-  if (run.distance_mi && run.avg_pace) {
-    runRow.textContent =
-      `${run.type ?? 'run'} • ${run.distance_mi} mi • pace ${run.avg_pace} • HR ${run.avg_hr ?? '—'}`;
-  } else {
-    runRow.textContent = '';
-  }
+    // Bench goals
+    let est1RM = '—';
+    let hit200 = false;
+    let hit225 = false;
 
-  // Lift
-  const liftKeys = Object.keys(lifts);
-  const liftRow = document.getElementById('liftRow');
-  liftRow.textContent = liftKeys.length
-    ? `Lift • ${liftKeys.join(', ')}`
-    : '';
+    if (lifts.bench_press) {
+      const sets = lifts.bench_press.split(',')
+        .map(s => s.trim())
+        .map(s => {
+          const m = s.match(/^(\d+)\s*x\s*(\d+)$/i);
+          if (!m) return null;
+          return { w: Number(m[1]), r: Number(m[2]) };
+        })
+        .filter(Boolean);
 
-  // Bench goals
-  let est1RM = '—';
-  let hit200 = false;
-  let hit225 = false;
+      if (sets.length) {
+        // use best estimated 1RM across sets (not just top weight)
+        est1RM = Math.max(...sets.map(s => epley(s.w, s.r)));
 
-  if (lifts.bench_press) {
-    const sets = lifts.bench_press.split(',').map(s => {
-      const [w, r] = s.trim().split('x').map(Number);
-      return { w, r };
-    });
+        // milestones require 5+ reps
+        hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+        hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
+      }
+    }
 
-    const top = sets.reduce((a, b) => (b.w > a.w ? b : a), sets[0]);
-    est1RM = epley(top.w, top.r);
-
-    hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
-    hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
-  }
-
-  document.getElementById('bench').textContent =
+    document.getElementById('bench').textContent =
 `Estimated 1RM: ${est1RM}
 200 × 5+: ${hit200}
 225 × 5+: ${hit225}`;
 
-  document.getElementById('status').textContent = 'Imported ✓';
-}
+    document.getElementById('status').textContent = 'Imported ✓';
+  }
 
-function loadSample() {
-  document.getElementById('input').value =
+  function loadSample() {
+    document.getElementById('input').value =
 `@day 2026-02-21
 weight: 182.0
 calories: 2100
@@ -278,8 +301,11 @@ avg_pace: 10:51
 avg_hr: 153
 
 @lift
-bench_press: 200x5, 185x8, 175x10`;
-}
+bench_press: 200x5, 185x8, 175x10
+seated_row: 140x10, 140x9
+leg_press: 285x12, 305x8
+ez_bar_curl: 60x10, 60x9`;
+  }
 </script>
 </body>
 </html>
