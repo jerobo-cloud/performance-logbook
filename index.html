@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Performance Logbook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui; margin: 16px; background:#0b0f14; color:#e6edf3; }
+    textarea { width:100%; height:180px; background:#111827; color:#e6edf3; border:1px solid #334155; border-radius:6px; padding:8px; }
+    button { padding:10px 14px; margin-top:8px; border-radius:6px; border:none; background:#2563eb; color:white; font-weight:600; }
+    pre { background:#020617; padding:10px; border-radius:6px; overflow:auto; }
+    h1,h2 { margin-top:16px; }
+  </style>
+</head>
+<body>
+
+<h1>Performance Logbook</h1>
+
+<h2>Import Nightly Snapshot</h2>
+<textarea id="input"></textarea>
+<button onclick="importSnapshot()">Import</button>
+
+<h2>Parsed Day</h2>
+<pre id="day"></pre>
+
+<h2>Bench Goals</h2>
+<pre id="bench"></pre>
+
+<script>
+function epley(w,r){ return w*(1+r/30); }
+
+function importSnapshot(){
+  const text = document.getElementById('input').value;
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let section='', sets=[];
+  let day={};
+
+  for(const line of lines){
+    if(line.startsWith('@')){ section=line.slice(1); continue; }
+
+    if(section==='day'){
+      const [k,v]=line.split(':').map(s=>s.trim());
+      day[k]=v;
+    }
+
+    if(section==='lift' && line.includes(':')){
+      const [ex,rest]=line.split(':');
+      rest.split(',').forEach(s=>{
+        const m=s.match(/(\d+)x(\d+)/);
+        if(m) sets.push({exercise:ex.trim(),weight:+m[1],reps:+m[2]});
+      });
+    }
+  }
+
+  document.getElementById('day').textContent=JSON.stringify(day,null,2);
+
+  let est1rm=0, hit200=false, hit225=false;
+  for(const s of sets){
+    if(s.exercise!=='bench_press') continue;
+    est1rm=Math.max(est1rm,epley(s.weight,s.reps));
+    if(s.reps>=5 && s.weight>=200) hit200=true;
+    if(s.reps>=5 && s.weight>=225) hit225=true;
+  }
+
+  document.getElementById('bench').textContent=
+    JSON.stringify({est1RM:Math.round(est1rm),hit200,hit225},null,2);
+}
+</script>
+
+</body>
+</html>
