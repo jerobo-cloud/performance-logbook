@@ -378,7 +378,7 @@
         </div>
       </div>
 
-      <!-- Debug (collapsed info without ugliness) -->
+      <!-- Details -->
       <div class="card">
         <div class="card-h">
           <h2>Details</h2>
@@ -425,13 +425,10 @@
       }
 
       if (section === 'lift'){
-        // Supports: bench_press: 200x5, 185x8
         const idx = line.indexOf(':');
         if (idx === -1) continue;
         const exercise = line.slice(0,idx).trim();
         const rest = line.slice(idx+1).trim();
-
-        // special line "burn:" doesn't parse as an exercise in v1 (we can extend later)
         if (!exercise) continue;
 
         rest.split(',').map(s=>s.trim()).forEach(s=>{
@@ -482,13 +479,14 @@
       const text = document.getElementById('input').value;
       const parsed = parseSnapshot(text);
 
-      // Render Today
-      const date = parsed.day['@day'] || parsed.day['date'] || (text.match(/@day\s+(\d{4}-\d{2}-\d{2})/)||[])[1] || '—';
+      // ✅ CORRECTED DATE + DAY KPI BINDING
+      const dateMatch = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+      const date = dateMatch ? dateMatch[1] : '—';
       document.getElementById('todayDate').textContent = date;
 
-      const w = parsed.day['weight'];
-      const c = parsed.day['calories'];
-      const p = parsed.day['protein'];
+      const w = parsed.day.weight;
+      const c = parsed.day.calories;
+      const p = parsed.day.protein;
 
       document.getElementById('kpiWeight').textContent = fmtOrDash(w);
       document.getElementById('kpiCalories').textContent = fmtOrDash(c);
@@ -498,10 +496,10 @@
       const runRow = document.getElementById('runRow');
       if (parsed.run){
         runRow.style.display = 'flex';
-        const type = parsed.run['type'] || 'run';
-        const dist = parsed.run['distance_mi'] || '—';
-        const pace = parsed.run['avg_pace'] || '—';
-        const hr = parsed.run['avg_hr'] || '—';
+        const type = parsed.run.type || 'run';
+        const dist = parsed.run.distance_mi || '—';
+        const pace = parsed.run.avg_pace || '—';
+        const hr = parsed.run.avg_hr || '—';
         document.getElementById('runMeta').textContent = `${type} • ${dist} mi • pace ${pace}`;
         document.getElementById('runRight').textContent = `HR ${hr}`;
       } else {
@@ -513,9 +511,11 @@
       const exercises = [...new Set(parsed.lift.sets.map(s=>s.exercise))];
       if (exercises.length){
         liftRow.style.display = 'flex';
-        document.getElementById('liftMeta').textContent = exercises.slice(0,4).join(', ') + (exercises.length>4?'…':'');
+        document.getElementById('liftMeta').textContent =
+          exercises.slice(0,4).join(', ') + (exercises.length>4?'…':'');
         const benchSets = parsed.lift.sets.filter(s=>s.exercise==='bench_press');
-        document.getElementById('liftRight').textContent = benchSets.length ? `bench sets ${benchSets.length}` : `${parsed.lift.sets.length} sets`;
+        document.getElementById('liftRight').textContent =
+          benchSets.length ? `bench sets ${benchSets.length}` : `${parsed.lift.sets.length} sets`;
       } else {
         liftRow.style.display = 'none';
       }
