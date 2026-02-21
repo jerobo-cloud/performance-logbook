@@ -14,7 +14,12 @@
     --success: #22c55e;
     --danger: #ef4444;
     --radius: 14px;
+
+    --chip: #1d2430;
+    --border: #253042;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   }
+
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -39,10 +44,10 @@
     min-height: 140px;
     background: #0f1520;
     color: var(--text);
-    border: 1px solid #253042;
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 10px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-family: var(--mono);
     font-size: 14px;
     line-height: 1.35;
   }
@@ -56,9 +61,7 @@
     font-weight: 650;
     margin-right: 8px;
   }
-  button.secondary {
-    background: #253042;
-  }
+  button.secondary { background: var(--border); }
 
   .muted { color: var(--muted); font-size: 13px; }
   .success { color: var(--success); font-weight: 650; }
@@ -70,7 +73,7 @@
     gap: 10px;
   }
   .stat {
-    background: #1d2430;
+    background: var(--chip);
     border-radius: 12px;
     padding: 12px;
     text-align: center;
@@ -79,7 +82,7 @@
   .stat .label { font-size: 12px; color: var(--muted); }
 
   .chip {
-    background: #1d2430;
+    background: var(--chip);
     border-radius: 999px;
     padding: 10px 12px;
     margin-top: 10px;
@@ -93,26 +96,20 @@
 
   code {
     background:#0f1520;
-    border:1px solid #253042;
+    border:1px solid var(--border);
     padding: 1px 6px;
     border-radius: 999px;
-    font-family: ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 12px;
     color: var(--text);
   }
 
-  .trendBlock {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .trendItem {
-    background:#1d2430;
-    border-radius: 12px;
-    padding: 12px;
-  }
-  .trendItem .tTitle { font-weight: 750; margin-bottom: 6px; }
-  .trendItem .tLine { color: var(--muted); font-size: 13px; line-height: 1.35; }
+  .trendBlock { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .trendItem { background: var(--chip); border-radius: 12px; padding: 12px; }
+  .trendHeader { display:flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .tTitle { font-weight: 800; }
+  .tSignal { font-weight: 900; letter-spacing: 0.5px; }
+  .tLine { color: var(--muted); font-size: 13px; line-height: 1.35; margin-top: 6px; }
 </style>
 </head>
 
@@ -175,17 +172,29 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
 <!-- TRENDS -->
 <div class="card">
   <h2>Trends</h2>
+
   <div class="trendBlock">
     <div class="trendItem">
-      <div class="tTitle">Weight</div>
+      <div class="trendHeader">
+        <div class="tTitle">Weight</div>
+        <div class="tSignal" id="sigWeight">—</div>
+      </div>
       <div class="tLine" id="trendWeight">—</div>
     </div>
+
     <div class="trendItem">
-      <div class="tTitle">Run (pace @ avg HR ≤ 160)</div>
+      <div class="trendHeader">
+        <div class="tTitle">Run (pace @ avg HR ≤ 160)</div>
+        <div class="tSignal" id="sigRun">—</div>
+      </div>
       <div class="tLine" id="trendRun">—</div>
     </div>
+
     <div class="trendItem">
-      <div class="tTitle">Bench</div>
+      <div class="trendHeader">
+        <div class="tTitle">Bench</div>
+        <div class="tSignal" id="sigBench">—</div>
+      </div>
       <div class="tLine" id="trendBench">—</div>
     </div>
   </div>
@@ -215,12 +224,9 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     return s;
   }
 
-  function epley(w, r) {
-    return Math.round(w * (1 + r / 30));
-  }
+  function epley(w, r) { return Math.round(w * (1 + r / 30)); }
 
   function paceToSeconds(paceStr){
-    // expects "M:SS" or "MM:SS"
     const s = clean(paceStr);
     if (!s) return null;
     const m = s.match(/^(\d+):([0-5]\d)$/);
@@ -228,16 +234,9 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     return Number(m[1]) * 60 + Number(m[2]);
   }
 
-  function secondsToPace(sec){
-    if (sec == null || !isFinite(sec)) return null;
-    const m = Math.floor(sec / 60);
-    const s = Math.round(sec % 60);
-    return `${m}:${String(s).padStart(2,'0')}`;
-  }
-
   function avg(nums){
     if (!nums.length) return null;
-    return nums.reduce((a,b)=>a+b,0)/nums.length;
+    return nums.reduce((a,b)=>a+b,0) / nums.length;
   }
 
   function loadLog(){
@@ -259,8 +258,6 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     const idx = log.findIndex(d => d.date === entry.date);
     if (idx >= 0) log[idx] = entry;
     else log.push(entry);
-
-    // sort by date asc (YYYY-MM-DD sorts naturally)
     log.sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
     saveLog(log);
     return log;
@@ -269,6 +266,7 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
   function showImport(){
     document.getElementById('importCard').classList.remove('collapsed');
     document.getElementById('importStatus').textContent = '';
+    document.getElementById('importStatus').className = 'success';
   }
 
   // ---------- parsing ----------
@@ -280,7 +278,7 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     const run = {};
     const lift = {};
 
-    // pull date from "@day YYYY-MM-DD" (preferred)
+    // date from "@day YYYY-MM-DD"
     const dm = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
     const date = dm ? dm[1] : null;
 
@@ -304,7 +302,7 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     return { date: date || (day.date || '—'), day, run, lift };
   }
 
-  // ---------- rendering ----------
+  // ---------- today rendering ----------
   function renderToday(parsed){
     const date = parsed.date || '—';
     document.getElementById('todayDate').textContent = date;
@@ -313,7 +311,7 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     document.getElementById('c').textContent = parsed.day.calories ?? '—';
     document.getElementById('p').textContent = parsed.day.protein ?? '—';
 
-    // IMPORTANT: avg_pace is a STRING and must be displayed verbatim (no rounding)
+    // avg_pace is displayed verbatim (string)
     const run = parsed.run || {};
     if (run.type || run.distance_mi || run.avg_pace || run.avg_hr) {
       const t = run.type ?? 'run';
@@ -337,7 +335,6 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     document.getElementById('liftChip').textContent =
       liftLabel.length ? `Lift · ${liftLabel.join(', ')}` : 'Lift · —';
 
-    // bench goals
     renderBenchGoals(lift);
     renderRunGoals(run);
   }
@@ -364,17 +361,15 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
       }
     }
 
-    const txt = (est == null)
-      ? 'Estimated 1RM: — · 200×5+: — · 225×5+: —'
-      : `Estimated 1RM: ${est} · 200×5+: ${hit200} · 225×5+: ${hit225}`;
-
-    document.getElementById('benchGoals').textContent = txt;
+    document.getElementById('benchGoals').textContent =
+      (est == null)
+        ? 'Estimated 1RM: — · 200×5+: — · 225×5+: —'
+        : `Estimated 1RM: ${est} · 200×5+: ${hit200} · 225×5+: ${hit225}`;
   }
 
   function renderRunGoals(run){
     const paceSec = paceToSeconds(run.avg_pace);
     const hr = run.avg_hr ? Number(run.avg_hr) : null;
-
     const qualifiesHR = (hr != null && hr <= 160);
 
     function goalLine(goalPaceStr){
@@ -388,20 +383,43 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
     document.getElementById('goal900').textContent = `Goal 2: 9:00 /mi · ${goalLine('9:00')}`;
   }
 
+  // ---------- trend signals ----------
+  // Holding = label only. Otherwise arrow only.
+  // Weight: down is improving (lower), up is regressing (higher).
+  // Run pace: down is improving (pace dropping), up is regressing.
+  // Bench: up is improving (strength increasing), down is regressing.
+  function setSignal(elId, kind){
+    // kind: 'down' | 'up' | 'hold' | 'na'
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (kind === 'hold') el.textContent = 'Holding';
+    else if (kind === 'down') el.textContent = '↓';
+    else if (kind === 'up') el.textContent = '↑';
+    else el.textContent = '—';
+  }
+
   function renderTrends(log){
-    // last 7 entries
     const last7 = log.slice(-7);
 
-    // Weight trend
+    // --- Weight ---
     const weights = last7.map(d => Number(d.weight)).filter(x => isFinite(x));
     const wAvg = avg(weights);
     const wLast = (weights.length ? weights[weights.length-1] : null);
-    document.getElementById('trendWeight').textContent =
-      (wAvg == null)
-        ? 'No data yet.'
-        : `Last: ${wLast.toFixed(1)} lbs · 7-day avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
 
-    // Run trend (qualifying runs HR<=160)
+    if (wAvg == null || wLast == null) {
+      setSignal('sigWeight', 'na');
+      document.getElementById('trendWeight').textContent = 'No data yet.';
+    } else {
+      const tol = 0.2; // lbs
+      let sig = 'hold';
+      if (wLast < wAvg - tol) sig = 'down';      // improving
+      else if (wLast > wAvg + tol) sig = 'up';   // regressing
+      setSignal('sigWeight', sig);
+      document.getElementById('trendWeight').textContent =
+        `Last: ${wLast.toFixed(1)} lbs · 7-day avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
+    }
+
+    // --- Run (qualifying HR<=160) ---
     const qRuns = log
       .filter(d => d.run && d.run.avg_hr != null && d.run.avg_pace)
       .map(d => ({
@@ -412,27 +430,48 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
       }))
       .filter(x => isFinite(x.hr) && x.hr <= 160 && x.paceSec != null);
 
-    const lastQ = qRuns.length ? qRuns[qRuns.length - 1] : null;
-    const bestQ = qRuns.length ? qRuns.reduce((best, cur) => cur.paceSec < best.paceSec ? cur : best, qRuns[0]) : null;
+    if (!qRuns.length) {
+      setSignal('sigRun', 'na');
+      document.getElementById('trendRun').textContent = 'No qualifying runs yet (avg HR ≤ 160).';
+    } else {
+      const lastQ = qRuns[qRuns.length - 1];
+      const bestQ = qRuns.reduce((best, cur) => cur.paceSec < best.paceSec ? cur : best, qRuns[0]);
 
-    document.getElementById('trendRun').textContent =
-      (!qRuns.length)
-        ? 'No qualifying runs yet (avg HR ≤ 160).'
-        : `Last qualifying: ${lastQ.date} · pace ${lastQ.paceStr} · HR ${lastQ.hr} | Best: ${bestQ.paceStr} (${bestQ.date})`;
+      // compare last qualifying to best-to-date (improvement = down arrow)
+      const tolSec = 5; // within 5 seconds = holding
+      let sig = 'hold';
+      if (lastQ.paceSec < bestQ.paceSec - tolSec) sig = 'down';         // improved beyond best (rare)
+      else if (lastQ.paceSec > bestQ.paceSec + tolSec) sig = 'up';      // worse than best
+      // NOTE: if last == best (or within tol), holding.
+      // This yields a simple "am I at my best?" signal until we add "recent baseline" later.
+      setSignal('sigRun', sig);
 
-    // Bench trend (best est1rm)
+      document.getElementById('trendRun').textContent =
+        `Last qualifying: ${lastQ.date} · pace ${lastQ.paceStr} · HR ${lastQ.hr} | Best: ${bestQ.paceStr} (${bestQ.date})`;
+    }
+
+    // --- Bench ---
     const benches = log
       .filter(d => d.bench && d.bench.est1rm != null)
       .map(d => ({ date: d.date, est1rm: Number(d.bench.est1rm) }))
       .filter(x => isFinite(x.est1rm));
 
-    const lastB = benches.length ? benches[benches.length-1] : null;
-    const bestB = benches.length ? benches.reduce((best, cur) => cur.est1rm > best.est1rm ? cur : best, benches[0]) : null;
+    if (!benches.length) {
+      setSignal('sigBench', 'na');
+      document.getElementById('trendBench').textContent = 'No bench data yet.';
+    } else {
+      const lastB = benches[benches.length-1];
+      const bestB = benches.reduce((best, cur) => cur.est1rm > best.est1rm ? cur : best, benches[0]);
 
-    document.getElementById('trendBench').textContent =
-      (!benches.length)
-        ? 'No bench data yet.'
-        : `Last: ${lastB.est1rm} (on ${lastB.date}) · Best: ${bestB.est1rm} (on ${bestB.date}) · entries: ${benches.length}`;
+      let sig = 'hold';
+      if (lastB.est1rm > bestB.est1rm) sig = 'up'; // improved beyond best (rare due to how best is defined)
+      else if (lastB.est1rm < bestB.est1rm) sig = 'down';
+      // same as best -> holding
+      setSignal('sigBench', sig);
+
+      document.getElementById('trendBench').textContent =
+        `Last: ${lastB.est1rm} (on ${lastB.date}) · Best: ${bestB.est1rm} (on ${bestB.date}) · entries: ${benches.length}`;
+    }
   }
 
   // ---------- import flow ----------
@@ -441,7 +480,6 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
       const text = document.getElementById('input').value;
       const parsed = parseSnapshot(text);
 
-      // build entry for log
       const entry = {
         date: parsed.date,
         weight: parsed.day.weight ? Number(parsed.day.weight) : null,
@@ -451,13 +489,12 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
           type: parsed.run.type ?? null,
           distance_mi: parsed.run.distance_mi ? Number(parsed.run.distance_mi) : null,
           duration: parsed.run.duration ?? null,
-          avg_pace: parsed.run.avg_pace ?? null, // keep string
+          avg_pace: parsed.run.avg_pace ?? null, // string
           avg_hr: parsed.run.avg_hr ? Number(parsed.run.avg_hr) : null
         },
         bench: null
       };
 
-      // compute bench summary if present
       if (parsed.lift && parsed.lift.bench_press){
         const sets = parsed.lift.bench_press.split(',')
           .map(s => s.trim())
@@ -476,12 +513,12 @@ bench_press: 200x5, 185x8, 175x10"></textarea>
         }
       }
 
-      // upsert and re-render
       const log = upsertDay(entry);
       renderToday(parsed);
       renderTrends(log);
 
       document.getElementById('importStatus').textContent = 'Imported ✓';
+      document.getElementById('importStatus').className = 'success';
       document.getElementById('importCard').classList.add('collapsed');
     }catch(e){
       document.getElementById('importStatus').textContent = 'Import failed';
@@ -509,8 +546,7 @@ bench_press: 200x5, 185x8, 175x10`;
 
   // ---------- init ----------
   (function init(){
-    const log = loadLog();
-    renderTrends(log);
+    renderTrends(loadLog());
   })();
 </script>
 
