@@ -551,7 +551,7 @@ button.danger:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v0.7</div>
+        <div class="version">A2 · v0.8</div>
       </div>
     </div>
 
@@ -566,34 +566,23 @@ button.danger:hover{ filter: brightness(1.06); }
         <textarea id="input" class="mono" spellcheck="false">@day 2026-02-22
 weight: 181.0
 calories: 2100
-protein: 155
-
-@run
-type: easy
-distance_mi: 3.5
-duration: 38:00
-avg_pace: 10:51
-avg_hr: 153
-
-@lift
-bench_press: 200x5, 185x8
-seated_row: 160x8
-leg_press: 360x10
-ez_bar_curl: 85x10</textarea>
+protein: 155</textarea>
 
         <div class="actions">
           <button class="primary" onclick="importData()">Import</button>
           <button class="secondary" onclick="loadSample()">Load sample</button>
         </div>
 
-        <div class="tip">Tip: use <code>na</code> for missing values. Bench milestones require <b>5+ reps</b> to count.</div>
+        <div class="tip">
+          Tip: paste <b>one</b> day or <b>many</b> days at once. Use <code>na</code> for missing values.
+        </div>
       </div>
 
       <div class="import-collapsed-row" id="importCollapsedRow">
         <div>
           <div class="import-confirm">
             <span class="confirm-dot"></span>
-            <span class="confirm-text">Imported</span>
+            <span class="confirm-text" id="importedLabel">Imported</span>
           </div>
           <div class="confirm-sub mono" id="importedStamp">—</div>
         </div>
@@ -611,7 +600,6 @@ ez_bar_curl: 85x10</textarea>
       <div class="snapshot-line">Snapshot: <b id="snapshotDate">—</b></div>
 
       <div class="grid">
-        <!-- Clickable weight metric opens weight history -->
         <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
           <div class="value" id="mWeight">—</div>
           <div class="label">Weight (lbs)</div>
@@ -705,9 +693,7 @@ ez_bar_curl: 85x10</textarea>
         </div>
         <button class="secondary" onclick="closeHistory()">Close</button>
       </div>
-      <div class="modal-body" id="histBody">
-        <!-- rows injected -->
-      </div>
+      <div class="modal-body" id="histBody"></div>
     </div>
   </div>
 
@@ -745,7 +731,6 @@ function paceToSeconds(paceStr){
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-/* Actual device date (local) as YYYY-MM-DD */
 function deviceISODateLocal(){
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -783,7 +768,7 @@ function latestDateFromDays(days){
   return days[days.length - 1].date || null;
 }
 
-/* ========== Parsing Snapshot ========== */
+/* ========== Parsing Snapshot (single block) ========== */
 function parseSnapshot(text){
   const lines = text.split("\n").map(l => l.trim());
   let section = null;
@@ -816,6 +801,53 @@ function parseSnapshot(text){
   return { date: date || "—", day, run, lift };
 }
 
+/* ========== Bulk splitting ========== */
+function splitIntoDayBlocks(raw){
+  // Splits on lines starting with "@day YYYY-MM-DD"
+  // Returns an array of block strings, each beginning with "@day ..."
+  const text = String(raw || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const lines = text.split("\n");
+  const blocks = [];
+  let buf = [];
+
+  const isDayLine = (line) => /^@day\s+\d{4}-\d{2}-\d{2}\b/.test(line.trim());
+
+  for (const line of lines){
+    if (isDayLine(line)){
+      if (buf.length) blocks.push(buf.join("\n").trim());
+      buf = [line.trim()];
+    } else {
+      // keep line (including section headers) inside current block
+      if (buf.length) buf.push(line);
+      // if no current buf yet and line isn't a day line, ignore leading noise
+    }
+  }
+  if (buf.length) blocks.push(buf.join("\n").trim());
+  return blocks.filter(b => /^@day\s+\d{4}-\d{2}-\d{2}\b/.test(b));
+}
+
+function buildEntryFromParsed(parsed){
+  const entry = {
+    date: parsed.date,
+    weight: num(parsed.day.weight),
+    calories: num(parsed.day.calories),
+    protein: num(parsed.day.protein),
+    run: {
+      type: clean(parsed.run.type),
+      distance_mi: num(parsed.run.distance_mi),
+      duration: clean(parsed.run.duration),
+      avg_pace: clean(parsed.run.avg_pace),
+      avg_hr: num(parsed.run.avg_hr)
+    },
+    lift: parsed.lift || {},
+    bench: null
+  };
+  recomputeBench(entry);
+  return entry;
+}
+
 /* ========== Import collapse controls ========== */
 function nowStamp(){
   const d = new Date();
@@ -829,9 +861,10 @@ function nowStamp(){
   const min = pad(d.getMinutes());
   return `${yyyy}-${mm}-${dd} · ${hh}:${min} ${ampm}`;
 }
-function collapseImport(){
+function collapseImport(labelText){
   document.getElementById("importCard").classList.add("is-collapsed");
   document.getElementById("importedStamp").textContent = nowStamp();
+  document.getElementById("importedLabel").textContent = labelText || "Imported";
 }
 function editImport(){
   document.getElementById("importCard").classList.remove("is-collapsed");
@@ -840,7 +873,6 @@ function editImport(){
 
 /* ========== Bench recompute helper ========== */
 function recomputeBench(entry){
-  // Uses entry.lift.bench_press (string like "200x5, 185x8") to recompute entry.bench
   if (!entry || !entry.lift || !entry.lift.bench_press){
     entry.bench = null;
     return entry;
@@ -888,7 +920,6 @@ function renderTodayFromLatest(dayEntry){
     document.getElementById("runLine").textContent = "—";
   }
 
-  // Lift pill is still a quick label list; bench history is separate.
   const liftKeys = [];
   if (dayEntry.lift && typeof dayEntry.lift === "object"){
     for (const k of Object.keys(dayEntry.lift)){
@@ -1055,62 +1086,8 @@ function renderBenchGoalsFromLatest(days){
   document.getElementById("bench225").textContent = `225 × 5+: ${last.bench.hit225 ? "true" : "false"}`;
 }
 
-/* ========== Import Flow ========== */
-function importData(){
-  const text = document.getElementById("input").value;
-  const parsed = parseSnapshot(text);
-
-  const entry = {
-    date: parsed.date,
-    weight: num(parsed.day.weight),
-    calories: num(parsed.day.calories),
-    protein: num(parsed.day.protein),
-    run: {
-      type: clean(parsed.run.type),
-      distance_mi: num(parsed.run.distance_mi),
-      duration: clean(parsed.run.duration),
-      avg_pace: clean(parsed.run.avg_pace),
-      avg_hr: num(parsed.run.avg_hr)
-    },
-    lift: parsed.lift || {},
-    bench: null
-  };
-
-  // compute bench off lift.bench_press
-  recomputeBench(entry);
-
-  const days = upsertDay(entry);
-  refreshAll(days);
-  collapseImport();
-
-  setTimeout(() => {
-    document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
-  }, 250);
-}
-
-function loadSample(){
-  document.getElementById("input").value =
-`@day ${deviceISODateLocal()}
-weight: 181.0
-calories: 2100
-protein: 155
-
-@run
-type: easy
-distance_mi: 3.5
-duration: 38:00
-avg_pace: 10:51
-avg_hr: 153
-
-@lift
-bench_press: 200x5, 185x8
-seated_row: 160x8
-leg_press: 360x10
-ez_bar_curl: 85x10`;
-}
-
-/* ========== History Modal ========== */
-let HISTORY_MODE = "weight"; // 'weight' | 'run' | 'bench'
+/* ========== History Modal (same as before) ========== */
+let HISTORY_MODE = "weight";
 
 function openHistory(mode){
   HISTORY_MODE = mode;
@@ -1121,12 +1098,11 @@ function closeHistory(){
   document.getElementById("historyOverlay").classList.remove("show");
 }
 function overlayClose(e){
-  // clicking overlay closes
   closeHistory();
 }
 
 function renderHistory(mode){
-  const days = loadDays().slice().sort((a,b)=> (a.date > b.date ? -1 : a.date < b.date ? 1 : 0)); // desc
+  const days = loadDays().slice().sort((a,b)=> (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
   const title = document.getElementById("histTitle");
   const sub = document.getElementById("histSub");
   const body = document.getElementById("histBody");
@@ -1136,7 +1112,7 @@ function renderHistory(mode){
   if (mode === "weight"){
     title.textContent = "Weight History";
     sub.textContent = "Edit a date’s weight. (No penalty for missing days.)";
-    rows = days.filter(d => d.weight != null || d.calories != null || d.protein != null); // show days that had day-data
+    rows = days.filter(d => d.weight != null || d.calories != null || d.protein != null);
   }
   if (mode === "run"){
     title.textContent = "Run History";
@@ -1145,7 +1121,7 @@ function renderHistory(mode){
   }
   if (mode === "bench"){
     title.textContent = "Bench History";
-    sub.textContent = "Edit bench_press sets (e.g., 200x5, 185x8). 5+ reps counts toward 200/225 goals.";
+    sub.textContent = "Edit bench_press sets (e.g., 200x5, 185x8). 5+ reps counts toward goals.";
     rows = days.filter(d => d.lift && d.lift.bench_press != null);
   }
 
@@ -1156,7 +1132,6 @@ function renderHistory(mode){
 
   body.innerHTML = rows.map(d => historyRowHTML(mode, d.date)).join("");
 
-  // Fill per-row summaries & inputs
   for (const d of rows){
     const rowEl = document.getElementById(`row-${mode}-${d.date}`);
     if (!rowEl) continue;
@@ -1227,7 +1202,6 @@ function editFieldsHTML(mode, date){
       </div>
     `;
   }
-  // bench
   return `
     <div class="field">
       <label>bench_press sets</label>
@@ -1263,7 +1237,6 @@ function fillRow(mode, day, rowEl){
 
     sumEl.textContent = `${type} · ${dist} mi · pace ${pace} · HR ${hr}`;
 
-    // qualifying note
     const paceOk = paceToSeconds(pace) != null;
     const hrOk = Number.isFinite(hr) ? (hr <= 160) : false;
     metaEl.textContent = (paceOk && hrOk) ? "Qualifies for Run trend (HR ≤ 160)" : "Does not qualify for Run trend (needs pace + HR ≤ 160)";
@@ -1275,7 +1248,6 @@ function fillRow(mode, day, rowEl){
     return;
   }
 
-  // bench
   const bp = (day.lift && day.lift.bench_press != null) ? String(day.lift.bench_press) : "—";
   const est = (day.bench && day.bench.est1rm != null) ? day.bench.est1rm : "—";
   sumEl.textContent = `bench_press: ${bp}`;
@@ -1288,7 +1260,6 @@ function toggleEdit(mode, date, cancel=false){
   const row = document.getElementById(`row-${mode}-${date}`);
   if (!row) return;
 
-  // If cancel, re-fill inputs from stored values
   if (cancel){
     const days = loadDays();
     const d = days.find(x => x.date === date);
@@ -1305,8 +1276,7 @@ function saveEdit(mode, date){
 
   const d = days[idx];
   const noteEl = document.getElementById(`note-${mode}-${date}`);
-
-  function setNote(msg){ noteEl.textContent = msg || ""; }
+  const setNote = (msg) => noteEl.textContent = msg || "";
 
   if (mode === "weight"){
     const w = clean(document.getElementById(`inp-${mode}-${date}-weight`).value);
@@ -1316,7 +1286,6 @@ function saveEdit(mode, date){
     d.weight = (w ? num(w) : null);
     d.calories = (c ? num(c) : null);
     d.protein = (p ? num(p) : null);
-
     setNote("Saved.");
   }
 
@@ -1327,7 +1296,6 @@ function saveEdit(mode, date){
     const pace = clean(document.getElementById(`inp-${mode}-${date}-pace`).value);
     const hr = clean(document.getElementById(`inp-${mode}-${date}-hr`).value);
 
-    // validate pace if present
     if (pace && paceToSeconds(pace) == null){
       setNote("avg_pace must be mm:ss (e.g., 10:51). Not saved.");
       return;
@@ -1337,7 +1305,6 @@ function saveEdit(mode, date){
     d.run.distance_mi = dist ? num(dist) : null;
     d.run.avg_pace = pace;
     d.run.avg_hr = hr ? num(hr) : null;
-
     setNote("Saved.");
   }
 
@@ -1345,13 +1312,11 @@ function saveEdit(mode, date){
     d.lift = d.lift || {};
     const benchStr = clean(document.getElementById(`inp-${mode}-${date}-bench`).value);
 
-    // if blank, treat as remove
     if (!benchStr){
       delete d.lift.bench_press;
       d.bench = null;
       setNote("Cleared bench_press for this date.");
     } else {
-      // basic validation: allow comma-separated NxR tokens
       const tokens = benchStr.split(",").map(s => s.trim()).filter(Boolean);
       const allValid = tokens.every(t => /^(\d+)\s*x\s*(\d+)$/i.test(t));
       if (!allValid){
@@ -1364,12 +1329,10 @@ function saveEdit(mode, date){
     }
   }
 
-  // Persist
   days[idx] = d;
   days.sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
   saveDays(days);
 
-  // Refresh main UI + modal row
   refreshAll(days);
   renderHistory(HISTORY_MODE);
 }
@@ -1386,7 +1349,7 @@ function deleteCategory(mode, date){
     d.protein = null;
   } else if (mode === "run"){
     d.run = { type: null, distance_mi: null, duration: null, avg_pace: null, avg_hr: null };
-  } else { // bench
+  } else {
     if (d.lift) delete d.lift.bench_press;
     d.bench = null;
   }
@@ -1409,6 +1372,68 @@ function refreshAll(days){
   renderTrends(days);
   renderRunGoals(days);
   renderBenchGoalsFromLatest(days);
+}
+
+/* ========== Import Flow (NOW supports bulk) ========== */
+function importData(){
+  const raw = document.getElementById("input").value;
+
+  const blocks = splitIntoDayBlocks(raw);
+
+  // If user pasted a single block (or forgot @day splits), fall back to single import
+  const effectiveBlocks = blocks.length ? blocks : [String(raw || "").trim()].filter(Boolean);
+
+  let imported = 0;
+  let skipped = 0;
+
+  for (const block of effectiveBlocks){
+    const parsed = parseSnapshot(block);
+    if (!parsed.date || parsed.date === "—"){
+      skipped++;
+      continue;
+    }
+    const entry = buildEntryFromParsed(parsed);
+    upsertDay(entry);
+    imported++;
+  }
+
+  const days = loadDays();
+  refreshAll(days);
+
+  const label = imported > 1 ? `Imported ${imported} days` : "Imported";
+  collapseImport(label);
+
+  // If everything skipped, open edit mode so user sees it didn't parse
+  if (imported === 0){
+    editImport();
+    alert("Import failed: no valid @day blocks found. Each block must start with '@day YYYY-MM-DD'.");
+    return;
+  }
+
+  setTimeout(() => {
+    document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }, 250);
+}
+
+function loadSample(){
+  document.getElementById("input").value =
+`@day ${deviceISODateLocal()}
+weight: 181.0
+calories: 2100
+protein: 155
+
+@run
+type: easy
+distance_mi: 3.5
+duration: 38:00
+avg_pace: 10:51
+avg_hr: 153
+
+@lift
+bench_press: 200x5, 185x8
+seated_row: 160x8
+leg_press: 360x10
+ez_bar_curl: 85x10`;
 }
 
 /* ========== Init ========== */
