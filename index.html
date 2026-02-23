@@ -109,6 +109,25 @@ h1{
   box-shadow: var(--shadow);
   margin-bottom: 16px;
   backdrop-filter: blur(4px);
+
+  /* NEW: allow a uniform left accent via ::before */
+  position: relative;
+}
+
+/* NEW: uniform dimmer accent for ALL cards (including Today) */
+.card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:12px;
+  bottom:12px;
+  width:3px;
+  border-radius: 3px;
+  /* Dimmer than solid #2F7CF6, but still clearly visible */
+  background: rgba(47,124,246,.52);
+  /* tiny soft edge so it reads well on OLED */
+  box-shadow: 0 0 0 1px rgba(47,124,246,.10);
+  pointer-events:none;
 }
 
 .card-title{
@@ -134,9 +153,9 @@ h1{
   border-radius: 2px;
 }
 
-.card.today{
-  border-left: 3px solid var(--blue);
-}
+/* CHANGED: remove Today-only bright accent so all cards match */
+/* .card.today{ border-left: 3px solid var(--blue); } */
+
 .badge-date{
   font-size:12px;
   color: rgba(230,234,240,.92);
