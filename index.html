@@ -136,6 +136,7 @@ h1{
   border-radius:999px;
   border:1px solid rgba(47,124,246,.30);
   background: rgba(47,124,246,.10);
+  font-variant-numeric: tabular-nums;
 }
 
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -143,7 +144,7 @@ h1{
 /* Import content wrapper: collapses after import */
 .import-body{
   transition: max-height .38s ease, opacity .25s ease, margin-top .25s ease;
-  max-height: 520px;
+  max-height: 560px;
   opacity: 1;
   overflow: hidden;
   margin-top: 0;
@@ -339,6 +340,17 @@ button.ghost:hover{ filter: brightness(1.06); }
   text-overflow: ellipsis;
 }
 
+/* Snapshot line under Today header */
+.snapshot-line{
+  margin: -4px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.snapshot-line b{
+  color: var(--text);
+  font-weight: 700;
+}
+
 /* Trends */
 .trend-row{
   display:flex;
@@ -368,7 +380,7 @@ button.ghost:hover{ filter: brightness(1.06); }
   font-size: 18px;
   font-weight: 900;
   line-height: 1;
-  color: var(--muted); /* default: neutral */
+  color: var(--muted);
 }
 .arrow.green{ color: var(--green); }
 
@@ -393,7 +405,7 @@ button.ghost:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v0.5</div>
+        <div class="version">A2 · v0.6</div>
       </div>
     </div>
 
@@ -418,7 +430,7 @@ avg_pace: 10:51
 avg_hr: 153
 
 @lift
-bench_press: 200x5
+bench_press: 200x5, 185x8
 seated_row: 160x8
 leg_press: 360x10
 ez_bar_curl: 85x10</textarea>
@@ -447,8 +459,12 @@ ez_bar_curl: 85x10</textarea>
     <div class="card today" id="todayCard">
       <div class="card-title">
         <h2>Today</h2>
-        <span class="badge-date" id="todayDate">—</span>
+        <!-- ACTUAL device date lives here -->
+        <span class="badge-date" id="actualTodayDate">—</span>
       </div>
+
+      <!-- Snapshot date (from last imported entry) -->
+      <div class="snapshot-line">Snapshot: <b id="snapshotDate">—</b></div>
 
       <div class="grid">
         <div class="metric">
@@ -552,11 +568,9 @@ function num(v){
 function parseISODate(iso){
   const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
-  // Use UTC to avoid timezone off-by-one
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 function daysBetweenUTC(a, b){
-  // b - a in days (a,b are Date objects)
   const ms = b.getTime() - a.getTime();
   return Math.round(ms / (1000*60*60*24));
 }
@@ -569,11 +583,14 @@ function paceToSeconds(paceStr){
   if (!m) return null;
   return Number(m[1]) * 60 + Number(m[2]);
 }
-function secondsToPace(sec){
-  if (sec == null || !Number.isFinite(sec)) return null;
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2,"0")}`;
+
+/* Actual device date (local) as YYYY-MM-DD */
+function deviceISODateLocal(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 /* ========== Storage ========== */
@@ -614,9 +631,8 @@ function parseSnapshot(text){
   const run = {};
   const lift = {};
 
-  // preferred: @day YYYY-MM-DD
   const dm = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
-  const date = dm ? dm[1] : (clean(day.date) || null);
+  const date = dm ? dm[1] : null;
 
   for (const line of lines){
     if (!line) continue;
@@ -639,7 +655,7 @@ function parseSnapshot(text){
   return { date: date || "—", day, run, lift };
 }
 
-/* ========== UI: Import collapse controls ========== */
+/* ========== Import collapse controls ========== */
 function nowStamp(){
   const d = new Date();
   const pad = (n) => String(n).padStart(2,"0");
@@ -662,13 +678,17 @@ function editImport(){
 }
 
 /* ========== Rendering: Today ========== */
-function renderToday(dayEntry){
-  document.getElementById("todayDate").textContent = dayEntry.date || "—";
+function renderTodayFromLatest(dayEntry){
+  // Actual device date (always accurate)
+  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+
+  // Snapshot date (from last imported entry)
+  document.getElementById("snapshotDate").textContent = dayEntry.date || "—";
+
   document.getElementById("mWeight").textContent = (dayEntry.weight != null) ? dayEntry.weight.toFixed(1) : "—";
   document.getElementById("mCalories").textContent = (dayEntry.calories != null) ? String(Math.round(dayEntry.calories)) : "—";
   document.getElementById("mProtein").textContent = (dayEntry.protein != null) ? String(Math.round(dayEntry.protein)) : "—";
 
-  // run line (preserve exact pace string)
   const r = dayEntry.run || {};
   if (r.avg_pace || r.avg_hr || r.distance_mi || r.type){
     const parts = [];
@@ -681,7 +701,6 @@ function renderToday(dayEntry){
     document.getElementById("runLine").textContent = "—";
   }
 
-  // lift line: list keys present
   const liftKeys = [];
   if (dayEntry.lift && typeof dayEntry.lift === "object"){
     for (const k of Object.keys(dayEntry.lift)){
@@ -692,32 +711,14 @@ function renderToday(dayEntry){
 }
 
 /* ========== Signals ========== */
-/*
-Rules:
-- Holding = label only (“Holding”)
-- Otherwise arrows only.
-- Green only for improving arrows.
-- Run improving = down arrow (pace drops)
-- Bench improving = up arrow (strength up)
-- Weight improving = down arrow (weight down vs avg)
-*/
 function setTrendState(elId, state){
-  // state: {kind:'holding'|'arrow', arrow:'↑'|'↓', improving:boolean}
   const el = document.getElementById(elId);
-  el.className = ""; // reset
-
-  if (!state){
+  el.className = "";
+  if (!state || state.kind === "holding"){
     el.className = "holding";
     el.textContent = "Holding";
     return;
   }
-
-  if (state.kind === "holding"){
-    el.className = "holding";
-    el.textContent = "Holding";
-    return;
-  }
-
   el.className = "arrow" + (state.improving ? " green" : "");
   el.textContent = state.arrow;
 }
@@ -727,11 +728,8 @@ function renderTrends(days){
   const latestISO = latestDateFromDays(days);
   const latestD = parseISODate(latestISO);
 
-  // ----- WEIGHT (calendar-ish, but tolerant: last 7 observations) -----
-  const weightObs = days
-    .filter(d => d.weight != null && Number.isFinite(d.weight))
-    .slice(-7);
-
+  // Weight (last 7 observations)
+  const weightObs = days.filter(d => d.weight != null && Number.isFinite(d.weight)).slice(-7);
   const weights = weightObs.map(d => d.weight);
   const wLast = weights.length ? weights[weights.length - 1] : null;
   const wAvg = weights.length ? (weights.reduce((a,b)=>a+b,0) / weights.length) : null;
@@ -740,17 +738,16 @@ function renderTrends(days){
     document.getElementById("tWeightMeta").textContent = "No data yet.";
     setTrendState("tWeightState", {kind:"holding"});
   } else {
-    const tol = 0.2; // lbs
+    const tol = 0.2;
     let state = {kind:"holding"};
-    if (wLast < wAvg - tol) state = {kind:"arrow", arrow:"↓", improving:true};        // improving
-    else if (wLast > wAvg + tol) state = {kind:"arrow", arrow:"↑", improving:false}; // regressing
+    if (wLast < wAvg - tol) state = {kind:"arrow", arrow:"↓", improving:true};
+    else if (wLast > wAvg + tol) state = {kind:"arrow", arrow:"↑", improving:false};
     document.getElementById("tWeightMeta").textContent =
       `Last: ${wLast.toFixed(1)} lbs · 7-entry avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
     setTrendState("tWeightState", state);
   }
 
-  // ----- RUN (event-based; only advances on qualifying runs) -----
-  // qualifying = avg_hr <= 160 and avg_pace present
+  // Run (event-based, qualifying only)
   const qualifyingRuns = days
     .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
     .map(d => ({
@@ -770,19 +767,17 @@ function renderTrends(days){
     const last = qualifyingRuns[qualifyingRuns.length - 1];
     const prev = qualifyingRuns.length >= 2 ? qualifyingRuns[qualifyingRuns.length - 2] : null;
 
-    // staleness
     let stale = "";
     if (latestD && last.dateObj){
       const gap = daysBetweenUTC(last.dateObj, latestD);
       stale = ` · ${gap}d ago`;
     }
 
-    // event-based comparison: last vs previous qualifying run
     let state = {kind:"holding"};
     if (prev){
-      const tolSec = 5; // seconds
-      if (last.paceSec < prev.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};        // improving pace (lower)
-      else if (last.paceSec > prev.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false}; // worse pace (higher)
+      const tolSec = 5;
+      if (last.paceSec < prev.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};
+      else if (last.paceSec > prev.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false};
     }
 
     document.getElementById("tRunMeta").textContent =
@@ -793,7 +788,7 @@ function renderTrends(days){
     setTrendState("tRunState", state);
   }
 
-  // ----- BENCH (event-based; only advances on bench sessions) -----
+  // Bench (event-based)
   const benchSessions = days
     .filter(d => d.bench && d.bench.est1rm != null)
     .map(d => ({
@@ -811,19 +806,17 @@ function renderTrends(days){
     const last = benchSessions[benchSessions.length - 1];
     const prev = benchSessions.length >= 2 ? benchSessions[benchSessions.length - 2] : null;
 
-    // staleness
     let stale = "";
     if (latestD && last.dateObj){
       const gap = daysBetweenUTC(last.dateObj, latestD);
       stale = ` · ${gap}d ago`;
     }
 
-    // event-based comparison: last vs previous bench session
     let state = {kind:"holding"};
     if (prev){
-      const tol = 1; // 1lb tolerance
-      if (last.est1rm > prev.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};          // improving strength
-      else if (last.est1rm < prev.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};   // worse
+      const tol = 1;
+      if (last.est1rm > prev.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};
+      else if (last.est1rm < prev.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};
     }
 
     document.getElementById("tBenchMeta").textContent =
@@ -837,14 +830,9 @@ function renderTrends(days){
 
 /* ========== Goals ========== */
 function renderRunGoals(days){
-  // Use the most recent qualifying run (HR<=160) as the check, if present.
   const runs = days
     .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
-    .map(d => ({
-      date: d.date,
-      hr: d.run.avg_hr,
-      paceSec: paceToSeconds(d.run.avg_pace)
-    }))
+    .map(d => ({ date: d.date, hr: d.run.avg_hr, paceSec: paceToSeconds(d.run.avg_pace) }))
     .filter(r => Number.isFinite(r.hr) && r.paceSec != null && r.hr <= 160)
     .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
@@ -865,7 +853,6 @@ function renderBenchGoalsFromLatest(days){
   const benches = days
     .filter(d => d.bench && d.bench.est1rm != null)
     .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
-
   const last = benches.length ? benches[benches.length - 1] : null;
 
   if (!last){
@@ -876,18 +863,15 @@ function renderBenchGoalsFromLatest(days){
   }
 
   document.getElementById("bench1rm").textContent = `Estimated 1RM: ${last.bench.est1rm}`;
-
-  // milestones require 5+ reps (already computed during import)
   document.getElementById("bench200").textContent = `200 × 5+: ${last.bench.hit200 ? "true" : "false"}`;
   document.getElementById("bench225").textContent = `225 × 5+: ${last.bench.hit225 ? "true" : "false"}`;
 }
 
-/* ========== Import Flow (main) ========== */
+/* ========== Import Flow ========== */
 function importData(){
   const text = document.getElementById("input").value;
   const parsed = parseSnapshot(text);
 
-  // Build day entry
   const entry = {
     date: parsed.date,
     weight: num(parsed.day.weight),
@@ -897,14 +881,13 @@ function importData(){
       type: clean(parsed.run.type),
       distance_mi: num(parsed.run.distance_mi),
       duration: clean(parsed.run.duration),
-      avg_pace: clean(parsed.run.avg_pace), // keep string
+      avg_pace: clean(parsed.run.avg_pace),
       avg_hr: num(parsed.run.avg_hr)
     },
     lift: parsed.lift || {},
     bench: null
   };
 
-  // Bench session summary (event-based)
   if (parsed.lift && parsed.lift.bench_press){
     const sets = String(parsed.lift.bench_press)
       .split(",")
@@ -924,19 +907,16 @@ function importData(){
     }
   }
 
-  // Persist + render
   const days = upsertDay(entry);
-
-  // Most recent day becomes Today
   const latest = days[days.length - 1];
-  renderToday(latest);
+
+  renderTodayFromLatest(latest);
   renderTrends(days);
   renderRunGoals(days);
   renderBenchGoalsFromLatest(days);
 
   collapseImport();
 
-  // Optional: scroll to Today after import
   setTimeout(() => {
     document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
   }, 250);
@@ -944,8 +924,8 @@ function importData(){
 
 function loadSample(){
   document.getElementById("input").value =
-`@day 2026-02-21
-weight: 182.0
+`@day 2026-02-22
+weight: 181.0
 calories: 2100
 protein: 155
 
@@ -965,16 +945,19 @@ ez_bar_curl: 85x10`;
 
 /* ========== Init ========== */
 (function init(){
+  // Always show actual device date even with no data
+  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+
   const days = loadDays();
   if (!days.length){
-    // keep placeholders
+    document.getElementById("snapshotDate").textContent = "—";
     document.getElementById("tWeightMeta").textContent = "No data yet.";
     document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
     document.getElementById("tBenchMeta").textContent = "No bench data yet.";
     return;
   }
   const latest = days[days.length - 1];
-  renderToday(latest);
+  renderTodayFromLatest(latest);
   renderTrends(days);
   renderRunGoals(days);
   renderBenchGoalsFromLatest(days);
