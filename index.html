@@ -41,7 +41,8 @@ body{
     radial-gradient(900px 520px at 70% -220px, rgba(47,124,246,.10), transparent 65%),
     radial-gradient(1200px 700px at 50% -260px, #121c2a, transparent 65%),
     linear-gradient(rgba(11,15,20,.78), rgba(11,15,20,.92)),
-    url("runner-ecg-bg.png") center 28% / cover no-repeat fixed,
+    /* iPhone fix: remove `fixed` attachment */
+    url("runner-ecg-bg.png") center 28% / cover no-repeat,
     var(--bg);
 }
 
@@ -1454,7 +1455,11 @@ function openHistory(mode){
 function closeHistory(){
   document.getElementById("historyOverlay").classList.remove("show");
 }
+
+/* iPhone fix: only close when tapping the overlay itself */
 function overlayClose(e){
+  const overlay = document.getElementById("historyOverlay");
+  if (e && e.target !== overlay) return;
   closeHistory();
 }
 
