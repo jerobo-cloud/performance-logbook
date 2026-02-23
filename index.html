@@ -551,7 +551,7 @@ button.danger:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v0.8</div>
+        <div class="version">A2 · v0.9</div>
       </div>
     </div>
 
@@ -638,7 +638,7 @@ protein: 155</textarea>
 
       <div class="trend-row clickable" onclick="openHistory('weight')" title="View & edit weight history">
         <div>
-          <div class="trend-title">Weight</div>
+          <div class="trend-title">Weight (weekly avg)</div>
           <div class="trend-meta" id="tWeightMeta">—</div>
         </div>
         <div id="tWeightState" class="holding">Holding</div>
@@ -717,6 +717,12 @@ function parseISODate(iso){
   if (!m) return null;
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
+function isoFromUTCDate(d){
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2,"0");
+  const dd = String(d.getUTCDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 function daysBetweenUTC(a, b){
   const ms = b.getTime() - a.getTime();
   return Math.round(ms / (1000*60*60*24));
@@ -737,6 +743,17 @@ function deviceISODateLocal(){
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/* Monday-start week key (UTC) */
+function weekStartMondayISO(isoDate){
+  const d = parseISODate(isoDate);
+  if (!d) return null;
+  // JS: Sun=0..Sat=6 => convert to Mon=0..Sun=6
+  const dayMon0 = (d.getUTCDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - dayMon0);
+  return isoFromUTCDate(monday);
 }
 
 /* ========== Storage ========== */
@@ -803,8 +820,6 @@ function parseSnapshot(text){
 
 /* ========== Bulk splitting ========== */
 function splitIntoDayBlocks(raw){
-  // Splits on lines starting with "@day YYYY-MM-DD"
-  // Returns an array of block strings, each beginning with "@day ..."
   const text = String(raw || "").replace(/\r\n/g, "\n").trim();
   if (!text) return [];
 
@@ -819,9 +834,7 @@ function splitIntoDayBlocks(raw){
       if (buf.length) blocks.push(buf.join("\n").trim());
       buf = [line.trim()];
     } else {
-      // keep line (including section headers) inside current block
       if (buf.length) buf.push(line);
-      // if no current buf yet and line isn't a day line, ignore leading noise
     }
   }
   if (buf.length) blocks.push(buf.join("\n").trim());
@@ -945,28 +958,122 @@ function setTrendState(elId, state){
 /* ========== Trends ========== */
 function renderTrends(days){
   const latestISO = latestDateFromDays(days);
-  const latestD = parseISODate(latestISO);
+  const latestD = latestISO ? parseISODate(latestISO) : null;
 
-  // Weight (last 7 observations)
-  const weightObs = days.filter(d => d.weight != null && Number.isFinite(d.weight)).slice(-7);
-  const weights = weightObs.map(d => d.weight);
-  const wLast = weights.length ? weights[weights.length - 1] : null;
-  const wAvg = weights.length ? (weights.reduce((a,b)=>a+b,0) / weights.length) : null;
+  /* ===== WEIGHT: weekly averages, compare last completed week vs previous completed week ===== */
+  const MIN_WEIGHINS_PER_WEEK = 3;     // last completed week must have at least this many weigh-ins
+  const WEIGHT_TOL_LBS = 0.15;         // threshold to avoid fake arrow movement
 
-  if (wLast == null || wAvg == null){
-    document.getElementById("tWeightMeta").textContent = "No data yet.";
-    setTrendState("tWeightState", {kind:"holding"});
-  } else {
-    const tol = 0.2;
-    let state = {kind:"holding"};
-    if (wLast < wAvg - tol) state = {kind:"arrow", arrow:"↓", improving:true};
-    else if (wLast > wAvg + tol) state = {kind:"arrow", arrow:"↑", improving:false};
-    document.getElementById("tWeightMeta").textContent =
-      `Last: ${wLast.toFixed(1)} lbs · 7-entry avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
-    setTrendState("tWeightState", state);
+  const weightDays = days
+    .filter(d => d.weight != null && Number.isFinite(d.weight) && d.date)
+    .map(d => ({ date: d.date, w: d.weight }))
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const buckets = new Map(); // weekStart(Mon) -> {sum,count,high,low}
+  for (const item of weightDays){
+    const wk = weekStartMondayISO(item.date);
+    if (!wk) continue;
+    if (!buckets.has(wk)){
+      buckets.set(wk, { sum: 0, count: 0, high: -Infinity, low: Infinity });
+    }
+    const b = buckets.get(wk);
+    b.sum += item.w;
+    b.count += 1;
+    b.high = Math.max(b.high, item.w);
+    b.low = Math.min(b.low, item.w);
   }
 
-  // Run (event-based, qualifying only)
+  const weeks = Array.from(buckets.entries())
+    .map(([weekStart, b]) => ({
+      weekStart,
+      avg: b.sum / b.count,
+      count: b.count,
+      high: b.high,
+      low: b.low
+    }))
+    .sort((a,b) => (a.weekStart > b.weekStart ? 1 : a.weekStart < b.weekStart ? -1 : 0));
+
+  // Determine the most recent COMPLETED week start based on latestD.
+  // If latest day is Mon-Sat, current week isn't complete -> last completed is previous week.
+  // If latest day is Sunday, current week is complete -> last completed is current week.
+  let lastCompletedWeekStart = null;
+  if (latestD){
+    const dow = latestD.getUTCDay(); // Sun=0..Sat=6
+    // find Monday of current week
+    const dayMon0 = (dow + 6) % 7;   // Mon=0..Sun=6
+    const currentWeekMonday = new Date(latestD);
+    currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
+
+    const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
+
+    if (dow === 0){
+      // Sunday => week complete
+      lastCompletedWeekStart = currentWeekStartISO;
+    } else {
+      // Mon-Sat => last completed week is previous week
+      const prevWeekMonday = new Date(currentWeekMonday);
+      prevWeekMonday.setUTCDate(currentWeekMonday.getUTCDate() - 7);
+      lastCompletedWeekStart = isoFromUTCDate(prevWeekMonday);
+    }
+  }
+
+  // Pick last completed week from available week buckets, and require MIN_WEIGHINS_PER_WEEK
+  const completedWeeks = weeks.filter(w => {
+    if (!lastCompletedWeekStart) return true; // fallback if we can't infer
+    return w.weekStart <= lastCompletedWeekStart;
+  });
+
+  const last = completedWeeks.length ? completedWeeks[completedWeeks.length - 1] : null;
+  const prev = completedWeeks.length >= 2 ? completedWeeks[completedWeeks.length - 2] : null;
+
+  if (!last){
+    document.getElementById("tWeightMeta").textContent = "No weight data yet.";
+    setTrendState("tWeightState", {kind:"holding"});
+  } else {
+    // If last completed week doesn't have enough weigh-ins, walk backward until it does (or fail)
+    let lastIdx = completedWeeks.length - 1;
+    let lastGood = last;
+    while (lastGood && lastGood.count < MIN_WEIGHINS_PER_WEEK){
+      lastIdx--;
+      lastGood = lastIdx >= 0 ? completedWeeks[lastIdx] : null;
+    }
+
+    if (!lastGood){
+      document.getElementById("tWeightMeta").textContent = `Need ${MIN_WEIGHINS_PER_WEEK}+ weigh-ins in a completed week to compute trend.`;
+      setTrendState("tWeightState", {kind:"holding"});
+    } else {
+      // previous good week
+      let prevIdx = lastIdx - 1;
+      let prevGood = prevIdx >= 0 ? completedWeeks[prevIdx] : null;
+      while (prevGood && prevGood.count < MIN_WEIGHINS_PER_WEEK){
+        prevIdx--;
+        prevGood = prevIdx >= 0 ? completedWeeks[prevIdx] : null;
+      }
+
+      let state = {kind:"holding"};
+      if (prevGood){
+        if (lastGood.avg < prevGood.avg - WEIGHT_TOL_LBS) state = {kind:"arrow", arrow:"↓", improving:true};
+        else if (lastGood.avg > prevGood.avg + WEIGHT_TOL_LBS) state = {kind:"arrow", arrow:"↑", improving:false};
+      }
+
+      // show Mon start + implied Sun end
+      const startD = parseISODate(lastGood.weekStart);
+      const endD = startD ? new Date(startD) : null;
+      if (endD) endD.setUTCDate(endD.getUTCDate() + 6);
+      const endISO = endD ? isoFromUTCDate(endD) : "—";
+
+      const range = `${lastGood.weekStart} → ${endISO}`;
+      const lastLine = `Completed week avg: ${lastGood.avg.toFixed(1)} (n=${lastGood.count}) · high ${lastGood.high.toFixed(1)} · low ${lastGood.low.toFixed(1)}`;
+      const prevLine = prevGood
+        ? `Prev completed week avg: ${prevGood.avg.toFixed(1)} (n=${prevGood.count})`
+        : `Prev completed week avg: —`;
+
+      document.getElementById("tWeightMeta").textContent = `${range} · ${lastLine} | ${prevLine}`;
+      setTrendState("tWeightState", state);
+    }
+  }
+
+  /* ===== RUN: event-based qualifying only ===== */
   const qualifyingRuns = days
     .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
     .map(d => ({
@@ -983,31 +1090,31 @@ function renderTrends(days){
     document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
     setTrendState("tRunState", {kind:"holding"});
   } else {
-    const last = qualifyingRuns[qualifyingRuns.length - 1];
-    const prev = qualifyingRuns.length >= 2 ? qualifyingRuns[qualifyingRuns.length - 2] : null;
+    const lastRun = qualifyingRuns[qualifyingRuns.length - 1];
+    const prevRun = qualifyingRuns.length >= 2 ? qualifyingRuns[qualifyingRuns.length - 2] : null;
 
     let stale = "";
-    if (latestD && last.dateObj){
-      const gap = daysBetweenUTC(last.dateObj, latestD);
+    if (latestD && lastRun.dateObj){
+      const gap = daysBetweenUTC(lastRun.dateObj, latestD);
       stale = ` · ${gap}d ago`;
     }
 
     let state = {kind:"holding"};
-    if (prev){
+    if (prevRun){
       const tolSec = 5;
-      if (last.paceSec < prev.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};
-      else if (last.paceSec > prev.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false};
+      if (lastRun.paceSec < prevRun.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};
+      else if (lastRun.paceSec > prevRun.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false};
     }
 
     document.getElementById("tRunMeta").textContent =
-      prev
-        ? `Last: ${last.date}${stale} · ${last.paceStr} @ HR ${last.avg_hr} | Prev: ${prev.paceStr} @ HR ${prev.avg_hr}`
-        : `Last: ${last.date}${stale} · ${last.paceStr} @ HR ${last.avg_hr} | Prev: —`;
+      prevRun
+        ? `Last: ${lastRun.date}${stale} · ${lastRun.paceStr} @ HR ${lastRun.avg_hr} | Prev: ${prevRun.paceStr} @ HR ${prevRun.avg_hr}`
+        : `Last: ${lastRun.date}${stale} · ${lastRun.paceStr} @ HR ${lastRun.avg_hr} | Prev: —`;
 
     setTrendState("tRunState", state);
   }
 
-  // Bench (event-based)
+  /* ===== BENCH: event-based ===== */
   const benchSessions = days
     .filter(d => d.bench && d.bench.est1rm != null)
     .map(d => ({
@@ -1022,26 +1129,26 @@ function renderTrends(days){
     document.getElementById("tBenchMeta").textContent = "No bench data yet.";
     setTrendState("tBenchState", {kind:"holding"});
   } else {
-    const last = benchSessions[benchSessions.length - 1];
-    const prev = benchSessions.length >= 2 ? benchSessions[benchSessions.length - 2] : null;
+    const lastB = benchSessions[benchSessions.length - 1];
+    const prevB = benchSessions.length >= 2 ? benchSessions[benchSessions.length - 2] : null;
 
     let stale = "";
-    if (latestD && last.dateObj){
-      const gap = daysBetweenUTC(last.dateObj, latestD);
+    if (latestD && lastB.dateObj){
+      const gap = daysBetweenUTC(lastB.dateObj, latestD);
       stale = ` · ${gap}d ago`;
     }
 
     let state = {kind:"holding"};
-    if (prev){
+    if (prevB){
       const tol = 1;
-      if (last.est1rm > prev.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};
-      else if (last.est1rm < prev.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};
+      if (lastB.est1rm > prevB.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};
+      else if (lastB.est1rm < prevB.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};
     }
 
     document.getElementById("tBenchMeta").textContent =
-      prev
-        ? `Last: ${last.date}${stale} · ${last.est1rm} | Prev: ${prev.est1rm}`
-        : `Last: ${last.date}${stale} · ${last.est1rm} | Prev: —`;
+      prevB
+        ? `Last: ${lastB.date}${stale} · ${lastB.est1rm} | Prev: ${prevB.est1rm}`
+        : `Last: ${lastB.date}${stale} · ${lastB.est1rm} | Prev: —`;
 
     setTrendState("tBenchState", state);
   }
@@ -1374,24 +1481,18 @@ function refreshAll(days){
   renderBenchGoalsFromLatest(days);
 }
 
-/* ========== Import Flow (NOW supports bulk) ========== */
+/* ========== Import Flow (supports bulk) ========== */
 function importData(){
   const raw = document.getElementById("input").value;
 
   const blocks = splitIntoDayBlocks(raw);
-
-  // If user pasted a single block (or forgot @day splits), fall back to single import
   const effectiveBlocks = blocks.length ? blocks : [String(raw || "").trim()].filter(Boolean);
 
   let imported = 0;
-  let skipped = 0;
 
   for (const block of effectiveBlocks){
     const parsed = parseSnapshot(block);
-    if (!parsed.date || parsed.date === "—"){
-      skipped++;
-      continue;
-    }
+    if (!parsed.date || parsed.date === "—") continue;
     const entry = buildEntryFromParsed(parsed);
     upsertDay(entry);
     imported++;
@@ -1400,15 +1501,14 @@ function importData(){
   const days = loadDays();
   refreshAll(days);
 
-  const label = imported > 1 ? `Imported ${imported} days` : "Imported";
-  collapseImport(label);
-
-  // If everything skipped, open edit mode so user sees it didn't parse
   if (imported === 0){
     editImport();
     alert("Import failed: no valid @day blocks found. Each block must start with '@day YYYY-MM-DD'.");
     return;
   }
+
+  const label = imported > 1 ? `Imported ${imported} days` : "Imported";
+  collapseImport(label);
 
   setTimeout(() => {
     document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
@@ -1450,6 +1550,13 @@ ez_bar_curl: 85x10`;
   }
   refreshAll(days);
 })();
+
+/* ========== Import collapse controls (needs to be after init for button bindings) ========== */
+function collapseImport(labelText){
+  document.getElementById("importCard").classList.add("is-collapsed");
+  document.getElementById("importedStamp").textContent = nowStamp();
+  document.getElementById("importedLabel").textContent = labelText || "Imported";
+}
 </script>
 </body>
 </html>
