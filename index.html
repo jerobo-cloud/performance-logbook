@@ -15,13 +15,12 @@
   --muted:#9aa4b2;
   --muted2:#6f7a89;
 
-  /* Your blue */
+  /* Blue accents */
   --blue:#2F7CF6;
 
   /* Subtle improvement green */
   --green:#4CAF50;
 
-  /* Borders + shadows */
   --stroke: rgba(255,255,255,.06);
   --stroke2: rgba(255,255,255,.09);
   --shadow: 0 10px 30px rgba(0,0,0,.35);
@@ -89,10 +88,12 @@ h1{
   background: var(--blue);
   box-shadow: 0 0 0 3px rgba(47,124,246,.20);
 }
-.version{
+.version, .last-import{
   color: var(--muted2);
   font-size:12px;
+  text-align:right;
 }
+.last-import{ font-variant-numeric: tabular-nums; }
 
 .card{
   background: linear-gradient(180deg, var(--card2), var(--card));
@@ -141,7 +142,7 @@ h1{
 
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
-/* Import content wrapper: collapses after import */
+/* Import collapse */
 .import-body{
   transition: max-height .38s ease, opacity .25s ease, margin-top .25s ease;
   max-height: 560px;
@@ -155,7 +156,7 @@ h1{
   margin-top: 0;
 }
 
-/* Collapsed footer row (Imported + Edit) */
+/* Collapsed footer row */
 .import-collapsed-row{
   display:none;
   margin-top: 10px;
@@ -183,9 +184,7 @@ h1{
   background: var(--green);
   box-shadow: 0 0 0 3px rgba(76,175,80,.14);
 }
-.confirm-text{
-  color: var(--text);
-}
+.confirm-text{ color: var(--text); }
 .confirm-sub{
   color: var(--muted);
   font-weight: 600;
@@ -347,15 +346,29 @@ button.danger:hover{ filter: brightness(1.06); }
   text-overflow: ellipsis;
 }
 
-/* Snapshot line under Today header */
+/* Snapshot line */
 .snapshot-line{
   margin: -4px 0 10px;
   color: var(--muted);
   font-size: 12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
 }
 .snapshot-line b{
   color: var(--text);
   font-weight: 700;
+}
+.snapshot-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Trends */
@@ -391,7 +404,7 @@ button.danger:hover{ filter: brightness(1.06); }
 }
 .arrow.green{ color: var(--green); }
 
-/* Clickable cards */
+/* Clickable */
 .clickable{
   cursor: pointer;
   user-select: none;
@@ -400,9 +413,7 @@ button.danger:hover{ filter: brightness(1.06); }
   border-color: rgba(47,124,246,.32);
   box-shadow: 0 12px 34px rgba(0,0,0,.42);
 }
-.clickable:active{
-  transform: translateY(1px);
-}
+.clickable:active{ transform: translateY(1px); }
 
 /* Goals */
 .goal{
@@ -413,7 +424,46 @@ button.danger:hover{ filter: brightness(1.06); }
   margin-top: 8px;
 }
 
-/* ===== Modal for History ===== */
+/* Settings */
+.settings-row{
+  display:flex;
+  gap:10px;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+.field-inline{
+  flex:1;
+  min-width: 160px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.field-inline label{
+  color: var(--muted);
+  font-size: 12px;
+}
+.field-inline input{
+  width:100%;
+  border-radius: 12px;
+  padding: 10px 11px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--stroke2);
+  outline:none;
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.field-inline input:focus{
+  border-color: rgba(47,124,246,.55);
+  box-shadow: 0 0 0 4px rgba(47,124,246,.14);
+}
+.small-note{
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ===== Modal ===== */
 .modal-overlay{
   position: fixed;
   inset: 0;
@@ -532,12 +582,6 @@ button.danger:hover{ filter: brightness(1.06); }
   border-color: rgba(47,124,246,.55);
   box-shadow: 0 0 0 4px rgba(47,124,246,.14);
 }
-
-.small-note{
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 12px;
-}
 </style>
 </head>
 
@@ -551,7 +595,27 @@ button.danger:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v0.9</div>
+        <div class="version">A2 · v1.0</div>
+        <div class="last-import mono">Last import: <span id="lastImportTop">—</span></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="card" id="settingsCard">
+      <div class="card-title">
+        <h2>Settings</h2>
+        <div class="subtitle mono">Run AEI uses max HR</div>
+      </div>
+      <div class="settings-row">
+        <div class="field-inline">
+          <label>max_hr (beats/min)</label>
+          <input id="maxHrInput" placeholder="e.g. 195" />
+        </div>
+        <button class="ghost" onclick="saveMaxHr()">Save</button>
+      </div>
+      <div class="small-note">
+        AEI = <span class="mono">mph / (avg_hr / max_hr)</span>. Higher AEI is better.
+        Run trend + goals use runs with <span class="mono">avg HR ≤ 160</span> and valid pace.
       </div>
     </div>
 
@@ -597,7 +661,10 @@ protein: 155</textarea>
         <span class="badge-date" id="actualTodayDate">—</span>
       </div>
 
-      <div class="snapshot-line">Snapshot: <b id="snapshotDate">—</b></div>
+      <div class="snapshot-line">
+        <span>Snapshot: <b id="snapshotDate">—</b></span>
+        <span class="snapshot-chip mono">Last import: <span id="lastImportToday">—</span></span>
+      </div>
 
       <div class="grid">
         <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
@@ -646,7 +713,7 @@ protein: 155</textarea>
 
       <div class="trend-row clickable" onclick="openHistory('run')" title="View & edit run history">
         <div>
-          <div class="trend-title">Run (pace @ avg HR ≤ 160)</div>
+          <div class="trend-title">Run (AEI)</div>
           <div class="trend-meta" id="tRunMeta">—</div>
         </div>
         <div id="tRunState" class="holding">Holding</div>
@@ -665,10 +732,10 @@ protein: 155</textarea>
     <div class="card">
       <div class="card-title">
         <h2>Run Goals</h2>
-        <div class="subtitle">Avg pace ≤ goal AND avg HR ≤ 160</div>
+        <div class="subtitle">Rolling 5-run AEI must meet/exceed goal (HR ≤ 160)</div>
       </div>
-      <div class="goal" id="goal930">Goal 1: 9:30 /mi · —</div>
-      <div class="goal" id="goal900">Goal 2: 9:00 /mi · —</div>
+      <div class="goal" id="goal78">Goal 1: AEI 7.8 · —</div>
+      <div class="goal" id="goal82">Goal 2: AEI 8.2 · —</div>
     </div>
 
     <!-- BENCH GOALS -->
@@ -736,6 +803,16 @@ function paceToSeconds(paceStr){
   if (!m) return null;
   return Number(m[1]) * 60 + Number(m[2]);
 }
+function secondsToPace(sec){
+  if (!Number.isFinite(sec) || sec <= 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec - m*60);
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+function mphFromPaceSeconds(paceSec){
+  if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
+  return 3600 / paceSec;
+}
 
 function deviceISODateLocal(){
   const d = new Date();
@@ -749,7 +826,6 @@ function deviceISODateLocal(){
 function weekStartMondayISO(isoDate){
   const d = parseISODate(isoDate);
   if (!d) return null;
-  // JS: Sun=0..Sat=6 => convert to Mon=0..Sun=6
   const dayMon0 = (d.getUTCDay() + 6) % 7;
   const monday = new Date(d);
   monday.setUTCDate(d.getUTCDate() - dayMon0);
@@ -758,6 +834,8 @@ function weekStartMondayISO(isoDate){
 
 /* ========== Storage ========== */
 const STORAGE_KEY = "plog_days_v1";
+const LAST_IMPORT_KEY = "plog_last_import_ms_v1";
+const MAX_HR_KEY = "plog_max_hr_v1";
 
 function loadDays(){
   try{
@@ -783,6 +861,93 @@ function upsertDay(entry){
 function latestDateFromDays(days){
   if (!days.length) return null;
   return days[days.length - 1].date || null;
+}
+
+/* ===== Settings: max HR ===== */
+function getMaxHr(){
+  const raw = localStorage.getItem(MAX_HR_KEY);
+  const v = raw ? Number(raw) : NaN;
+  // default chosen to be sane if unset
+  return Number.isFinite(v) && v >= 120 && v <= 240 ? v : 195;
+}
+function setMaxHr(v){
+  localStorage.setItem(MAX_HR_KEY, String(v));
+}
+function hydrateMaxHrUI(){
+  const el = document.getElementById("maxHrInput");
+  if (!el) return;
+  el.value = String(getMaxHr());
+}
+function saveMaxHr(){
+  const el = document.getElementById("maxHrInput");
+  const v = el ? Number(clean(el.value)) : NaN;
+  if (!Number.isFinite(v) || v < 120 || v > 240){
+    alert("max_hr must be a number between 120 and 240.");
+    hydrateMaxHrUI();
+    return;
+  }
+  setMaxHr(v);
+  const days = loadDays();
+  refreshAll(days);
+}
+
+/* ===== Last import timestamp ===== */
+function formatImportStampFromMs(ms){
+  if (!ms || !Number.isFinite(ms)) return "—";
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2,"0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
+  let hh = d.getHours();
+  const ampm = hh >= 12 ? "PM" : "AM";
+  hh = hh % 12; if (hh === 0) hh = 12;
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd} · ${hh}:${min} ${ampm}`;
+}
+function setLastImportNow(){
+  const ms = Date.now();
+  localStorage.setItem(LAST_IMPORT_KEY, String(ms));
+  renderLastImport();
+  return ms;
+}
+function getLastImportMs(){
+  const raw = localStorage.getItem(LAST_IMPORT_KEY);
+  const ms = raw ? Number(raw) : NaN;
+  return Number.isFinite(ms) ? ms : null;
+}
+function renderLastImport(){
+  const ms = getLastImportMs();
+  const stamp = formatImportStampFromMs(ms);
+  const top = document.getElementById("lastImportTop");
+  const today = document.getElementById("lastImportToday");
+  const collapsed = document.getElementById("importedStamp");
+  if (top) top.textContent = stamp;
+  if (today) today.textContent = stamp;
+  if (collapsed && ms) collapsed.textContent = stamp;
+}
+
+/* ========== AEI helpers ========== */
+/*
+  AEI as requested:
+    avg pace / (avg_hr / maxhr)
+  But run goals targets (7.8, 8.2) match better when "avg pace" is interpreted as SPEED (mph).
+  So AEI here is:
+    AEI = mph / (avg_hr / maxhr) = mph * (maxhr / avg_hr)
+  Higher AEI is better.
+*/
+function computeAEI(paceSec, avgHr, maxHr){
+  if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
+  if (!Number.isFinite(avgHr) || avgHr <= 0) return null;
+  if (!Number.isFinite(maxHr) || maxHr <= 0) return null;
+  const mph = mphFromPaceSeconds(paceSec);
+  if (mph == null) return null;
+  return mph * (maxHr / avgHr);
+}
+function avg(nums){
+  const a = nums.filter(x => Number.isFinite(x));
+  if (!a.length) return null;
+  return a.reduce((s,x)=>s+x,0) / a.length;
 }
 
 /* ========== Parsing Snapshot (single block) ========== */
@@ -862,21 +1027,10 @@ function buildEntryFromParsed(parsed){
 }
 
 /* ========== Import collapse controls ========== */
-function nowStamp(){
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2,"0");
-  const yyyy = d.getFullYear();
-  const mm = pad(d.getMonth()+1);
-  const dd = pad(d.getDate());
-  let hh = d.getHours();
-  const ampm = hh >= 12 ? "PM" : "AM";
-  hh = hh % 12; if (hh === 0) hh = 12;
-  const min = pad(d.getMinutes());
-  return `${yyyy}-${mm}-${dd} · ${hh}:${min} ${ampm}`;
-}
 function collapseImport(labelText){
   document.getElementById("importCard").classList.add("is-collapsed");
-  document.getElementById("importedStamp").textContent = nowStamp();
+  const ms = setLastImportNow();
+  document.getElementById("importedStamp").textContent = formatImportStampFromMs(ms);
   document.getElementById("importedLabel").textContent = labelText || "Imported";
 }
 function editImport(){
@@ -916,6 +1070,7 @@ function recomputeBench(entry){
 function renderTodayFromLatest(dayEntry){
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
   document.getElementById("snapshotDate").textContent = dayEntry.date || "—";
+  renderLastImport();
 
   document.getElementById("mWeight").textContent = (dayEntry.weight != null) ? dayEntry.weight.toFixed(1) : "—";
   document.getElementById("mCalories").textContent = (dayEntry.calories != null) ? String(Math.round(dayEntry.calories)) : "—";
@@ -924,10 +1079,14 @@ function renderTodayFromLatest(dayEntry){
   const r = dayEntry.run || {};
   if (r.avg_pace || r.avg_hr || r.distance_mi || r.type){
     const parts = [];
+    const maxHr = getMaxHr();
+    const paceSec = paceToSeconds(r.avg_pace);
+    const aei = computeAEI(paceSec, r.avg_hr, maxHr);
     if (r.type) parts.push(r.type);
     if (r.distance_mi != null) parts.push(`${r.distance_mi} mi`);
     if (r.avg_pace) parts.push(`pace ${r.avg_pace}`);
     if (r.avg_hr != null) parts.push(`HR ${r.avg_hr}`);
+    if (aei != null) parts.push(`AEI ${aei.toFixed(2)}`);
     document.getElementById("runLine").textContent = parts.join(" · ");
   } else {
     document.getElementById("runLine").textContent = "—";
@@ -960,16 +1119,16 @@ function renderTrends(days){
   const latestISO = latestDateFromDays(days);
   const latestD = latestISO ? parseISODate(latestISO) : null;
 
-  /* ===== WEIGHT: weekly averages, compare last completed week vs previous completed week ===== */
-  const MIN_WEIGHINS_PER_WEEK = 3;     // last completed week must have at least this many weigh-ins
-  const WEIGHT_TOL_LBS = 0.15;         // threshold to avoid fake arrow movement
+  /* ===== WEIGHT ===== */
+  const MIN_WEIGHINS_PER_WEEK = 3;
+  const WEIGHT_TOL_LBS = 0.15;
 
   const weightDays = days
     .filter(d => d.weight != null && Number.isFinite(d.weight) && d.date)
     .map(d => ({ date: d.date, w: d.weight }))
     .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
-  const buckets = new Map(); // weekStart(Mon) -> {sum,count,high,low}
+  const buckets = new Map();
   for (const item of weightDays){
     const wk = weekStartMondayISO(item.date);
     if (!wk) continue;
@@ -993,44 +1152,35 @@ function renderTrends(days){
     }))
     .sort((a,b) => (a.weekStart > b.weekStart ? 1 : a.weekStart < b.weekStart ? -1 : 0));
 
-  // Determine the most recent COMPLETED week start based on latestD.
-  // If latest day is Mon-Sat, current week isn't complete -> last completed is previous week.
-  // If latest day is Sunday, current week is complete -> last completed is current week.
   let lastCompletedWeekStart = null;
   if (latestD){
-    const dow = latestD.getUTCDay(); // Sun=0..Sat=6
-    // find Monday of current week
-    const dayMon0 = (dow + 6) % 7;   // Mon=0..Sun=6
+    const dow = latestD.getUTCDay();
+    const dayMon0 = (dow + 6) % 7;
     const currentWeekMonday = new Date(latestD);
     currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
 
     const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
 
     if (dow === 0){
-      // Sunday => week complete
       lastCompletedWeekStart = currentWeekStartISO;
     } else {
-      // Mon-Sat => last completed week is previous week
       const prevWeekMonday = new Date(currentWeekMonday);
       prevWeekMonday.setUTCDate(currentWeekMonday.getUTCDate() - 7);
       lastCompletedWeekStart = isoFromUTCDate(prevWeekMonday);
     }
   }
 
-  // Pick last completed week from available week buckets, and require MIN_WEIGHINS_PER_WEEK
   const completedWeeks = weeks.filter(w => {
-    if (!lastCompletedWeekStart) return true; // fallback if we can't infer
+    if (!lastCompletedWeekStart) return true;
     return w.weekStart <= lastCompletedWeekStart;
   });
 
   const last = completedWeeks.length ? completedWeeks[completedWeeks.length - 1] : null;
-  const prev = completedWeeks.length >= 2 ? completedWeeks[completedWeeks.length - 2] : null;
 
   if (!last){
     document.getElementById("tWeightMeta").textContent = "No weight data yet.";
     setTrendState("tWeightState", {kind:"holding"});
   } else {
-    // If last completed week doesn't have enough weigh-ins, walk backward until it does (or fail)
     let lastIdx = completedWeeks.length - 1;
     let lastGood = last;
     while (lastGood && lastGood.count < MIN_WEIGHINS_PER_WEEK){
@@ -1042,7 +1192,6 @@ function renderTrends(days){
       document.getElementById("tWeightMeta").textContent = `Need ${MIN_WEIGHINS_PER_WEEK}+ weigh-ins in a completed week to compute trend.`;
       setTrendState("tWeightState", {kind:"holding"});
     } else {
-      // previous good week
       let prevIdx = lastIdx - 1;
       let prevGood = prevIdx >= 0 ? completedWeeks[prevIdx] : null;
       while (prevGood && prevGood.count < MIN_WEIGHINS_PER_WEEK){
@@ -1056,7 +1205,6 @@ function renderTrends(days){
         else if (lastGood.avg > prevGood.avg + WEIGHT_TOL_LBS) state = {kind:"arrow", arrow:"↑", improving:false};
       }
 
-      // show Mon start + implied Sun end
       const startD = parseISODate(lastGood.weekStart);
       const endD = startD ? new Date(startD) : null;
       if (endD) endD.setUTCDate(endD.getUTCDate() + 6);
@@ -1073,25 +1221,50 @@ function renderTrends(days){
     }
   }
 
-  /* ===== RUN: event-based qualifying only ===== */
+  /* ===== RUN: AEI rolling + block comparison ===== */
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
   const qualifyingRuns = days
-    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
-    .map(d => ({
-      date: d.date,
-      dateObj: parseISODate(d.date),
-      avg_hr: d.run.avg_hr,
-      paceStr: d.run.avg_pace,
-      paceSec: paceToSeconds(d.run.avg_pace)
-    }))
-    .filter(r => r.dateObj && r.paceSec != null && Number.isFinite(r.avg_hr) && r.avg_hr <= 160)
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const hr = d.run.avg_hr;
+      const aei = computeAEI(paceSec, hr, maxHr);
+      return {
+        date: d.date,
+        dateObj: parseISODate(d.date),
+        paceStr: d.run.avg_pace,
+        paceSec,
+        avg_hr: hr,
+        aei
+      };
+    })
+    .filter(r => r.dateObj && r.paceSec != null && Number.isFinite(r.avg_hr) && r.avg_hr <= RUN_HR_CAP && r.aei != null)
     .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
   if (!qualifyingRuns.length){
-    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (needs pace + avg HR ≤ 160).";
     setTrendState("tRunState", {kind:"holding"});
   } else {
     const lastRun = qualifyingRuns[qualifyingRuns.length - 1];
-    const prevRun = qualifyingRuns.length >= 2 ? qualifyingRuns[qualifyingRuns.length - 2] : null;
+    const last5 = qualifyingRuns.slice(-5);
+    const rolling5 = avg(last5.map(r => r.aei));
+
+    // Primary view: block comparison
+    const last3 = qualifyingRuns.slice(-3);
+    const prev3 = qualifyingRuns.slice(-6, -3);
+
+    const avgLast3 = avg(last3.map(r => r.aei));
+    const avgPrev3 = prev3.length === 3 ? avg(prev3.map(r => r.aei)) : null;
+
+    // State: improving if last3 avg > prev3 avg by tolerance
+    let state = {kind:"holding"};
+    if (avgPrev3 != null && avgLast3 != null){
+      const tol = 0.03; // small, keeps jitter down
+      if (avgLast3 > avgPrev3 + tol) state = {kind:"arrow", arrow:"↑", improving:true};
+      else if (avgLast3 < avgPrev3 - tol) state = {kind:"arrow", arrow:"↓", improving:false};
+    }
 
     let stale = "";
     if (latestD && lastRun.dateObj){
@@ -1099,22 +1272,21 @@ function renderTrends(days){
       stale = ` · ${gap}d ago`;
     }
 
-    let state = {kind:"holding"};
-    if (prevRun){
-      const tolSec = 5;
-      if (lastRun.paceSec < prevRun.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};
-      else if (lastRun.paceSec > prevRun.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false};
-    }
+    const rollingLine = (rolling5 != null)
+      ? `Rolling AEI (last 5): ${rolling5.toFixed(2)}`
+      : `Rolling AEI (last 5): —`;
+
+    const blockLine = (avgPrev3 != null)
+      ? `Blocks: last 3 = ${avgLast3.toFixed(2)} vs prior 3 = ${avgPrev3.toFixed(2)}`
+      : `Blocks: need 6 qualifying runs (have ${qualifyingRuns.length})`;
 
     document.getElementById("tRunMeta").textContent =
-      prevRun
-        ? `Last: ${lastRun.date}${stale} · ${lastRun.paceStr} @ HR ${lastRun.avg_hr} | Prev: ${prevRun.paceStr} @ HR ${prevRun.avg_hr}`
-        : `Last: ${lastRun.date}${stale} · ${lastRun.paceStr} @ HR ${lastRun.avg_hr} | Prev: —`;
+      `maxHR ${maxHr} · Last: ${lastRun.date}${stale} · AEI ${lastRun.aei.toFixed(2)} (${lastRun.paceStr} @ HR ${lastRun.avg_hr}) | ${rollingLine} | ${blockLine}`;
 
     setTrendState("tRunState", state);
   }
 
-  /* ===== BENCH: event-based ===== */
+  /* ===== BENCH ===== */
   const benchSessions = days
     .filter(d => d.bench && d.bench.est1rm != null)
     .map(d => ({
@@ -1154,27 +1326,37 @@ function renderTrends(days){
   }
 }
 
-/* ========== Goals ========== */
+/* ========== Run Goals (rolling AEI) ========== */
 function renderRunGoals(days){
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
   const runs = days
-    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
-    .map(d => ({ date: d.date, hr: d.run.avg_hr, paceSec: paceToSeconds(d.run.avg_pace) }))
-    .filter(r => Number.isFinite(r.hr) && r.paceSec != null && r.hr <= 160)
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const aei = computeAEI(paceSec, d.run.avg_hr, maxHr);
+      return { date: d.date, hr: d.run.avg_hr, aei };
+    })
+    .filter(r => Number.isFinite(r.hr) && r.hr <= RUN_HR_CAP && r.aei != null)
     .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
-  const last = runs.length ? runs[runs.length - 1] : null;
+  const last5 = runs.slice(-5);
+  const rolling5 = (last5.length === 5) ? avg(last5.map(r => r.aei)) : null;
 
-  function goalLine(goalPaceStr){
-    if (!last) return "—";
-    const goalSec = paceToSeconds(goalPaceStr);
-    if (goalSec == null) return "—";
-    return (last.paceSec <= goalSec) ? "Met ✓" : "Not yet";
+  function goalLine(goal){
+    if (rolling5 == null){
+      const have = runs.length;
+      return `Need 5 qualifying runs (have ${have})`;
+    }
+    return (rolling5 >= goal) ? `Met ✓ (rolling ${rolling5.toFixed(2)})` : `Not yet (rolling ${rolling5.toFixed(2)})`;
   }
 
-  document.getElementById("goal930").textContent = `Goal 1: 9:30 /mi · ${goalLine("9:30")}`;
-  document.getElementById("goal900").textContent = `Goal 2: 9:00 /mi · ${goalLine("9:00")}`;
+  document.getElementById("goal78").textContent = `Goal 1: AEI 7.8 · ${goalLine(7.8)}`;
+  document.getElementById("goal82").textContent = `Goal 2: AEI 8.2 · ${goalLine(8.2)}`;
 }
 
+/* ========== Bench Goals ========== */
 function renderBenchGoalsFromLatest(days){
   const benches = days
     .filter(d => d.bench && d.bench.est1rm != null)
@@ -1193,7 +1375,7 @@ function renderBenchGoalsFromLatest(days){
   document.getElementById("bench225").textContent = `225 × 5+: ${last.bench.hit225 ? "true" : "false"}`;
 }
 
-/* ========== History Modal (same as before) ========== */
+/* ========== History Modal ========== */
 let HISTORY_MODE = "weight";
 
 function openHistory(mode){
@@ -1223,7 +1405,7 @@ function renderHistory(mode){
   }
   if (mode === "run"){
     title.textContent = "Run History";
-    sub.textContent = "Edit pace (mm:ss) and avg HR. (Trends are event-based.)";
+    sub.textContent = "Edit pace (mm:ss) and avg HR. AEI shown for qualifying runs (avg HR ≤ 160).";
     rows = days.filter(d => d.run && (d.run.avg_pace || d.run.avg_hr != null || d.run.distance_mi != null || d.run.type));
   }
   if (mode === "bench"){
@@ -1342,11 +1524,17 @@ function fillRow(mode, day, rowEl){
     const pace = r.avg_pace || "—";
     const hr = (r.avg_hr != null) ? r.avg_hr : "—";
 
-    sumEl.textContent = `${type} · ${dist} mi · pace ${pace} · HR ${hr}`;
+    const maxHr = getMaxHr();
+    const paceSec = paceToSeconds(pace);
+    const aei = computeAEI(paceSec, r.avg_hr, maxHr);
+
+    sumEl.textContent = `${type} · ${dist} mi · pace ${pace} · HR ${hr}${aei != null ? ` · AEI ${aei.toFixed(2)}` : ""}`;
 
     const paceOk = paceToSeconds(pace) != null;
-    const hrOk = Number.isFinite(hr) ? (hr <= 160) : false;
-    metaEl.textContent = (paceOk && hrOk) ? "Qualifies for Run trend (HR ≤ 160)" : "Does not qualify for Run trend (needs pace + HR ≤ 160)";
+    const hrOk = (r.avg_hr != null && Number.isFinite(r.avg_hr)) ? (r.avg_hr <= 160) : false;
+    metaEl.textContent = (paceOk && hrOk && aei != null)
+      ? `Qualifies for AEI trend (maxHR ${maxHr})`
+      : `Does not qualify (needs pace + avg HR ≤ 160)`;
 
     rowEl.querySelector(`#inp-${mode}-${date}-type`).value = r.type || "";
     rowEl.querySelector(`#inp-${mode}-${date}-distance`).value = (r.distance_mi != null) ? String(r.distance_mi) : "";
@@ -1372,7 +1560,6 @@ function toggleEdit(mode, date, cancel=false){
     const d = days.find(x => x.date === date);
     if (d) fillRow(mode, d, row);
   }
-
   row.classList.toggle("editing");
 }
 
@@ -1469,11 +1656,23 @@ function deleteCategory(mode, date){
 
 /* ========== Refresh helper ========== */
 function refreshAll(days){
+  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  renderLastImport();
+  hydrateMaxHrUI();
+
   if (!days || !days.length){
-    document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
     document.getElementById("snapshotDate").textContent = "—";
+    document.getElementById("tWeightMeta").textContent = "No data yet.";
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (needs pace + avg HR ≤ 160).";
+    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+    setTrendState("tWeightState", {kind:"holding"});
+    setTrendState("tRunState", {kind:"holding"});
+    setTrendState("tBenchState", {kind:"holding"});
+    renderRunGoals([]);
+    renderBenchGoalsFromLatest([]);
     return;
   }
+
   const latest = days.slice().sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0)).at(-1);
   renderTodayFromLatest(latest);
   renderTrends(days);
@@ -1539,24 +1738,12 @@ ez_bar_curl: 85x10`;
 /* ========== Init ========== */
 (function init(){
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  hydrateMaxHrUI();
+  renderLastImport();
 
   const days = loadDays();
-  if (!days.length){
-    document.getElementById("snapshotDate").textContent = "—";
-    document.getElementById("tWeightMeta").textContent = "No data yet.";
-    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
-    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
-    return;
-  }
   refreshAll(days);
 })();
-
-/* ========== Import collapse controls (needs to be after init for button bindings) ========== */
-function collapseImport(labelText){
-  document.getElementById("importCard").classList.add("is-collapsed");
-  document.getElementById("importedStamp").textContent = nowStamp();
-  document.getElementById("importedLabel").textContent = labelText || "Imported";
-}
 </script>
 </body>
 </html>
