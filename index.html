@@ -36,6 +36,8 @@ body{
     radial-gradient(900px 520px at 40% -140px, rgba(47,124,246,.20), transparent 60%),
     radial-gradient(900px 520px at 70% -220px, rgba(47,124,246,.10), transparent 65%),
     radial-gradient(1200px 700px at 50% -260px, #121c2a, transparent 65%),
+    linear-gradient(rgba(11,15,20,.82), rgba(11,15,20,.92)),
+    url("runner-ecg-bg.png") center / cover no-repeat fixed,
     var(--bg);
 }
 
@@ -96,12 +98,13 @@ h1{
 .last-import{ font-variant-numeric: tabular-nums; }
 
 .card{
-  background: linear-gradient(180deg, var(--card2), var(--card));
+  background: linear-gradient(180deg, rgba(21,29,42,.92), rgba(18,24,36,.92));
   border: 1px solid var(--stroke);
   border-radius: 18px;
   padding: 16px;
   box-shadow: var(--shadow);
   margin-bottom: 16px;
+  backdrop-filter: blur(4px);
 }
 
 .card-title{
@@ -424,45 +427,6 @@ button.danger:hover{ filter: brightness(1.06); }
   margin-top: 8px;
 }
 
-/* Settings */
-.settings-row{
-  display:flex;
-  gap:10px;
-  align-items:flex-end;
-  flex-wrap:wrap;
-}
-.field-inline{
-  flex:1;
-  min-width: 160px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.field-inline label{
-  color: var(--muted);
-  font-size: 12px;
-}
-.field-inline input{
-  width:100%;
-  border-radius: 12px;
-  padding: 10px 11px;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid var(--stroke2);
-  outline:none;
-  font-size: 14px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.field-inline input:focus{
-  border-color: rgba(47,124,246,.55);
-  box-shadow: 0 0 0 4px rgba(47,124,246,.14);
-}
-.small-note{
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 /* ===== Modal ===== */
 .modal-overlay{
   position: fixed;
@@ -582,6 +546,12 @@ button.danger:hover{ filter: brightness(1.06); }
   border-color: rgba(47,124,246,.55);
   box-shadow: 0 0 0 4px rgba(47,124,246,.14);
 }
+
+.small-note{
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
 </style>
 </head>
 
@@ -595,27 +565,8 @@ button.danger:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v1.0</div>
+        <div class="version">A2 · v1.1</div>
         <div class="last-import mono">Last import: <span id="lastImportTop">—</span></div>
-      </div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div class="card" id="settingsCard">
-      <div class="card-title">
-        <h2>Settings</h2>
-        <div class="subtitle mono">Run AEI uses max HR</div>
-      </div>
-      <div class="settings-row">
-        <div class="field-inline">
-          <label>max_hr (beats/min)</label>
-          <input id="maxHrInput" placeholder="e.g. 195" />
-        </div>
-        <button class="ghost" onclick="saveMaxHr()">Save</button>
-      </div>
-      <div class="small-note">
-        AEI = <span class="mono">mph / (avg_hr / max_hr)</span>. Higher AEI is better.
-        Run trend + goals use runs with <span class="mono">avg HR ≤ 160</span> and valid pace.
       </div>
     </div>
 
@@ -803,12 +754,6 @@ function paceToSeconds(paceStr){
   if (!m) return null;
   return Number(m[1]) * 60 + Number(m[2]);
 }
-function secondsToPace(sec){
-  if (!Number.isFinite(sec) || sec <= 0) return "—";
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec - m*60);
-  return `${m}:${String(s).padStart(2,"0")}`;
-}
 function mphFromPaceSeconds(paceSec){
   if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
   return 3600 / paceSec;
@@ -837,6 +782,14 @@ const STORAGE_KEY = "plog_days_v1";
 const LAST_IMPORT_KEY = "plog_last_import_ms_v1";
 const MAX_HR_KEY = "plog_max_hr_v1";
 
+/* NOTE: settings UI removed; max_hr is still supported via localStorage.
+   Default is 195 unless MAX_HR_KEY exists. */
+function getMaxHr(){
+  const raw = localStorage.getItem(MAX_HR_KEY);
+  const v = raw ? Number(raw) : NaN;
+  return Number.isFinite(v) && v >= 120 && v <= 240 ? v : 195;
+}
+
 function loadDays(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -861,34 +814,6 @@ function upsertDay(entry){
 function latestDateFromDays(days){
   if (!days.length) return null;
   return days[days.length - 1].date || null;
-}
-
-/* ===== Settings: max HR ===== */
-function getMaxHr(){
-  const raw = localStorage.getItem(MAX_HR_KEY);
-  const v = raw ? Number(raw) : NaN;
-  // default chosen to be sane if unset
-  return Number.isFinite(v) && v >= 120 && v <= 240 ? v : 195;
-}
-function setMaxHr(v){
-  localStorage.setItem(MAX_HR_KEY, String(v));
-}
-function hydrateMaxHrUI(){
-  const el = document.getElementById("maxHrInput");
-  if (!el) return;
-  el.value = String(getMaxHr());
-}
-function saveMaxHr(){
-  const el = document.getElementById("maxHrInput");
-  const v = el ? Number(clean(el.value)) : NaN;
-  if (!Number.isFinite(v) || v < 120 || v > 240){
-    alert("max_hr must be a number between 120 and 240.");
-    hydrateMaxHrUI();
-    return;
-  }
-  setMaxHr(v);
-  const days = loadDays();
-  refreshAll(days);
 }
 
 /* ===== Last import timestamp ===== */
@@ -928,14 +853,7 @@ function renderLastImport(){
 }
 
 /* ========== AEI helpers ========== */
-/*
-  AEI as requested:
-    avg pace / (avg_hr / maxhr)
-  But run goals targets (7.8, 8.2) match better when "avg pace" is interpreted as SPEED (mph).
-  So AEI here is:
-    AEI = mph / (avg_hr / maxhr) = mph * (maxhr / avg_hr)
-  Higher AEI is better.
-*/
+/* AEI = mph / (avg_hr / max_hr) = mph * (max_hr / avg_hr). Higher is better. */
 function computeAEI(paceSec, avgHr, maxHr){
   if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
   if (!Number.isFinite(avgHr) || avgHr <= 0) return null;
@@ -1119,7 +1037,7 @@ function renderTrends(days){
   const latestISO = latestDateFromDays(days);
   const latestD = latestISO ? parseISODate(latestISO) : null;
 
-  /* ===== WEIGHT ===== */
+  /* ===== WEIGHT: weekly averages ===== */
   const MIN_WEIGHINS_PER_WEEK = 3;
   const WEIGHT_TOL_LBS = 0.15;
 
@@ -1258,10 +1176,9 @@ function renderTrends(days){
     const avgLast3 = avg(last3.map(r => r.aei));
     const avgPrev3 = prev3.length === 3 ? avg(prev3.map(r => r.aei)) : null;
 
-    // State: improving if last3 avg > prev3 avg by tolerance
     let state = {kind:"holding"};
     if (avgPrev3 != null && avgLast3 != null){
-      const tol = 0.03; // small, keeps jitter down
+      const tol = 0.03;
       if (avgLast3 > avgPrev3 + tol) state = {kind:"arrow", arrow:"↑", improving:true};
       else if (avgLast3 < avgPrev3 - tol) state = {kind:"arrow", arrow:"↓", improving:false};
     }
@@ -1658,7 +1575,6 @@ function deleteCategory(mode, date){
 function refreshAll(days){
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
   renderLastImport();
-  hydrateMaxHrUI();
 
   if (!days || !days.length){
     document.getElementById("snapshotDate").textContent = "—";
@@ -1738,9 +1654,7 @@ ez_bar_curl: 85x10`;
 /* ========== Init ========== */
 (function init(){
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
-  hydrateMaxHrUI();
   renderLastImport();
-
   const days = loadDays();
   refreshAll(days);
 })();
