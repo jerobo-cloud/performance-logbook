@@ -15,7 +15,10 @@
   --muted:#9aa4b2;
   --muted2:#6f7a89;
 
+  /* Blue accents */
   --blue:#2F7CF6;
+
+  /* Subtle improvement green */
   --green:#4CAF50;
 
   --stroke: rgba(255,255,255,.06);
@@ -25,112 +28,364 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
-
 body{
   margin:0;
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+
+  /* Background image + overlays.
+     Key bit: center 28% moves the image "up" (smaller % = higher).
+     If head still clips on your device, try 24% or 20%. */
   background:
-    radial-gradient(900px 520px at 40% -140px, rgba(47,124,246,.18), transparent 60%),
+    radial-gradient(900px 520px at 40% -140px, rgba(47,124,246,.20), transparent 60%),
     radial-gradient(900px 520px at 70% -220px, rgba(47,124,246,.10), transparent 65%),
-    linear-gradient(rgba(11,15,20,.85), rgba(11,15,20,.94)),
-    url("runner-ecg-bg.png") center 34% / cover no-repeat fixed,
+    radial-gradient(1200px 700px at 50% -260px, #121c2a, transparent 65%),
+    linear-gradient(rgba(11,15,20,.78), rgba(11,15,20,.92)),
+    url("runner-ecg-bg.png") center 28% / cover no-repeat fixed,
     var(--bg);
 }
 
 .container{
-  max-width:430px;
-  margin:0 auto;
-  padding:16px 14px 44px;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 16px 14px 44px;
 }
 
-/* Header */
 .header{
-  margin:10px 2px 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin: 10px 2px 14px;
 }
 h1{
-  font-size:30px;
+  font-size: 30px;
+  line-height: 1.1;
   margin:0;
+  letter-spacing:.2px;
 }
 .subtitle{
-  margin-top:6px;
-  font-size:14px;
+  margin:6px 0 0;
   color:var(--muted);
+  font-size:14px;
 }
 
-/* Cards */
+.status{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  margin-top:3px;
+}
+.pill-status{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid rgba(47,124,246,.28);
+  background: rgba(47,124,246,.10);
+  color: var(--text);
+  font-size:13px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.20);
+}
+.dot{
+  width:9px; height:9px; border-radius:999px;
+  background: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47,124,246,.20);
+}
+.version, .last-import{
+  color: var(--muted2);
+  font-size:12px;
+  text-align:right;
+}
+.last-import{ font-variant-numeric: tabular-nums; }
+
 .card{
-  position:relative;
-  background: linear-gradient(180deg, var(--card2), var(--card));
-  border:1px solid var(--stroke);
-  border-radius:18px;
-  padding:16px;
-  box-shadow:var(--shadow);
-  margin-bottom:16px;
-}
-
-/* Uniform subtle accent for ALL cards */
-.card::before{
-  content:"";
-  position:absolute;
-  left:0;
-  top:12px;
-  bottom:12px;
-  width:2px;
-  border-radius:2px;
-  background: rgba(47,124,246,.20); /* dimmer than old Today accent */
+  background: linear-gradient(180deg, rgba(21,29,42,.92), rgba(18,24,36,.92));
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  backdrop-filter: blur(4px);
 }
 
 .card-title{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin-bottom:12px;
+  justify-content:space-between;
+  gap:10px;
+  margin: 0 0 12px;
 }
 .card-title h2{
   margin:0;
   font-size:18px;
+  letter-spacing:.2px;
   position:relative;
-  padding-bottom:6px;
+  padding-bottom:8px;
 }
 .card-title h2::after{
   content:"";
   position:absolute;
-  left:0;
-  bottom:0;
-  width:36px;
-  height:2px;
-  background: rgba(47,124,246,.75);
+  left:0; bottom:0;
+  width:38px; height:2px;
+  background: rgba(47,124,246,.85);
+  border-radius: 2px;
 }
 
-.clickable{
-  cursor:pointer;
+.card.today{
+  border-left: 3px solid var(--blue);
 }
-.clickable:hover{
-  border-color: rgba(47,124,246,.35);
+.badge-date{
+  font-size:12px;
+  color: rgba(230,234,240,.92);
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(47,124,246,.30);
+  background: rgba(47,124,246,.10);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Status grid */
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Import collapse */
+.import-body{
+  transition: max-height .38s ease, opacity .25s ease, margin-top .25s ease;
+  max-height: 560px;
+  opacity: 1;
+  overflow: hidden;
+  margin-top: 0;
+}
+#importCard.is-collapsed .import-body{
+  max-height: 0px;
+  opacity: 0;
+  margin-top: 0;
+}
+
+/* Collapsed footer row */
+.import-collapsed-row{
+  display:none;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+#importCard.is-collapsed .import-collapsed-row{
+  display:flex;
+}
+.import-confirm{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight: 750;
+  letter-spacing:.2px;
+}
+.confirm-dot{
+  width:10px; height:10px;
+  border-radius:999px;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(76,175,80,.14);
+}
+.confirm-text{ color: var(--text); }
+.confirm-sub{
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Textarea */
+textarea{
+  width:100%;
+  min-height: 170px;
+  resize: vertical;
+  border-radius: 14px;
+  padding: 12px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--stroke2);
+  outline: none;
+  font-size: 14px;
+  line-height: 1.35;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+}
+textarea:focus{
+  border-color: rgba(47,124,246,.55);
+  box-shadow:
+    0 0 0 4px rgba(47,124,246,.16),
+    inset 0 0 0 1px rgba(0,0,0,.10);
+}
+
+/* Buttons */
+.actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+button{
+  border: none;
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform .06s ease, filter .12s ease, background .12s ease;
+}
+button:active{ transform: translateY(1px); }
+
+button.primary{
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 10px 22px rgba(47,124,246,.22);
+}
+button.primary:hover{ filter: brightness(1.03); }
+
+button.secondary{
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  border: 1px solid var(--stroke);
+}
+button.secondary:hover{ filter: brightness(1.05); }
+
+button.ghost{
+  background: rgba(47,124,246,.10);
+  color: var(--text);
+  border: 1px solid rgba(47,124,246,.32);
+}
+button.ghost:hover{ filter: brightness(1.06); }
+
+button.danger{
+  background: rgba(255, 86, 86, .12);
+  color: var(--text);
+  border: 1px solid rgba(255, 86, 86, .35);
+}
+button.danger:hover{ filter: brightness(1.06); }
+
+/* Tip */
+.tip{
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.tip b{ color: var(--text); }
+.tip code{
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+}
+
+/* Grids */
 .grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.grid.status-grid{
+  grid-template-columns: repeat(3, 1fr);
 }
 .metric{
   background: rgba(255,255,255,.04);
-  border:1px solid var(--stroke);
-  border-radius:14px;
-  padding:12px;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
   text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.metric::before{
+  content:"";
+  position:absolute;
+  inset:-40% -30% auto auto;
+  width:130px; height:130px;
+  background: radial-gradient(circle at 30% 30%, rgba(47,124,246,.18), transparent 60%);
+  transform: rotate(12deg);
+  pointer-events:none;
 }
 .value{
-  font-size:22px;
-  font-weight:800;
+  font-size: 22px;
+  font-weight: 780;
+  letter-spacing:.2px;
 }
 .label{
-  margin-top:4px;
-  font-size:13px;
-  color:var(--muted);
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.subvalue{
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pills */
+.pill{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+.pill .left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.icon{
+  width:26px; height:26px;
+  border-radius: 9px;
+  display:grid;
+  place-items:center;
+  color: white;
+  background: rgba(47,124,246,.16);
+  border: 1px solid rgba(47,124,246,.30);
+}
+.pill .text{
+  color: var(--text);
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
+/* Snapshot line */
+.snapshot-line{
+  margin: -4px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.snapshot-line b{
+  color: var(--text);
+  font-weight: 700;
+}
+.snapshot-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Trends */
@@ -138,190 +393,1423 @@ h1{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:12px;
   background: rgba(255,255,255,.04);
-  border:1px solid var(--stroke);
-  border-radius:14px;
-  padding:12px;
-  margin-top:10px;
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
 }
-.trend-title{font-weight:700}
-.trend-meta{font-size:13px;color:var(--muted)}
+.trend-title{ font-weight: 700; }
+.trend-meta{
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
 
 .holding{
-  color:var(--muted);
-  font-weight:700;
+  color: var(--muted);
+  font-weight: 750;
+  letter-spacing:.2px;
 }
+
 .arrow{
-  font-size:18px;
-  font-weight:900;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--muted);
 }
-.arrow.green{color:var(--green)}
+.arrow.green{ color: var(--green); }
 
-/* Import */
-textarea{
-  width:100%;
-  min-height:170px;
-  resize:vertical;
-  border-radius:14px;
-  padding:12px;
-  color:var(--text);
-  background:var(--panel);
-  border:1px solid var(--stroke2);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+/* Clickable */
+.clickable{
+  cursor: pointer;
+  user-select: none;
 }
+.clickable:hover{
+  border-color: rgba(47,124,246,.32);
+  box-shadow: 0 12px 34px rgba(0,0,0,.42);
+}
+.clickable:active{ transform: translateY(1px); }
 
-.actions{
-  display:flex;
-  gap:10px;
-  margin-top:12px;
-}
-button{
-  border:none;
-  border-radius:14px;
-  padding:11px 14px;
-  font-weight:700;
-  cursor:pointer;
-}
-.primary{
-  background:var(--blue);
-  color:white;
-}
-.secondary{
-  background:rgba(255,255,255,.06);
-  color:var(--text);
-  border:1px solid var(--stroke);
+/* Goals */
+.goal{
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--stroke);
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 8px;
 }
 
-/* Modal */
+/* ===== Modal ===== */
 .modal-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;
-  align-items:flex-end;
-  justify-content:center;
-  padding:14px;
-  z-index:999;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  z-index: 9999;
 }
-.modal-overlay.show{display:flex}
+.modal-overlay.show{ display:flex; }
+
 .modal{
-  width:100%;
-  max-width:520px;
+  width: min(520px, 100%);
+  max-height: 82vh;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
   background: linear-gradient(180deg, var(--card2), var(--card));
-  border-radius:18px;
-  border:1px solid var(--stroke);
-  max-height:80vh;
-  overflow:hidden;
 }
+
 .modal-header{
-  padding:14px;
-  border-bottom:1px solid var(--stroke);
   display:flex;
+  align-items:center;
   justify-content:space-between;
+  gap:10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.modal-title{
+  margin:0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing:.2px;
+}
+.modal-sub{
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.modal-header-left{
+  display:flex;
+  flex-direction:column;
 }
 .modal-body{
-  padding:14px;
-  overflow:auto;
-  max-height:70vh;
+  padding: 12px 14px 14px;
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.hist-row{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.04);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.hist-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.hist-date{
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.hist-summary{
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 13px;
+}
+.hist-meta{
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.hist-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+.edit-area{
+  margin-top: 10px;
+  display:none;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.hist-row.editing .edit-area{ display:block; }
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top: 8px;
+}
+.field label{
+  color: var(--muted);
+  font-size: 12px;
+}
+.field input{
+  width:100%;
+  border-radius: 12px;
+  padding: 10px 11px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--stroke2);
+  outline:none;
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.field input:focus{
+  border-color: rgba(47,124,246,.55);
+  box-shadow: 0 0 0 4px rgba(47,124,246,.14);
+}
+
+.small-note{
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
-
-  <div class="header">
-    <h1>The Foundation</h1>
-    <div class="subtitle">Strength. Endurance. Consistency.</div>
-  </div>
-
-  <!-- TODAY -->
-  <div class="card clickable" onclick="openHistory('weight')">
-    <div class="card-title">
-      <h2>Today</h2>
-    </div>
-    <div class="grid">
-      <div class="metric">
-        <div class="value" id="mWeight">—</div>
-        <div class="label">Weight</div>
-      </div>
-      <div class="metric">
-        <div class="value" id="mCalories">—</div>
-        <div class="label">Calories</div>
-      </div>
-      <div class="metric">
-        <div class="value" id="mProtein">—</div>
-        <div class="label">Protein</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TRENDS -->
-  <div class="card">
-    <div class="card-title">
-      <h2>Trends</h2>
-    </div>
-
-    <div class="trend-row clickable" onclick="openHistory('weight')">
+  <div class="container">
+    <div class="header">
       <div>
-        <div class="trend-title">Weight</div>
-        <div class="trend-meta" id="tWeightMeta">—</div>
+        <h1>The Foundation</h1>
+        <div class="subtitle">Strength. Endurance. Consistency.</div>
       </div>
-      <div id="tWeightState" class="holding">Holding</div>
+
+      <div class="status">
+        <div class="pill-status"><span class="dot"></span> Live</div>
+        <div class="version">A2 · v1.4</div>
+        <div class="last-import mono">Last import: <span id="lastImportTop">—</span></div>
+      </div>
     </div>
 
-    <div class="trend-row clickable" onclick="openHistory('run')">
-      <div>
-        <div class="trend-title">Run</div>
-        <div class="trend-meta" id="tRunMeta">—</div>
+    <!-- CURRENT STATUS -->
+    <div class="card" id="statusCard">
+      <div class="card-title">
+        <h2>Current Status</h2>
+        <span class="badge-date mono" id="actualTodayDate">—</span>
       </div>
-      <div id="tRunState" class="holding">Holding</div>
+
+      <div class="snapshot-line">
+        <span>Snapshot: <b id="snapshotDate">—</b></span>
+        <span class="snapshot-chip mono">Last import: <span id="lastImportToday">—</span></span>
+      </div>
+
+      <div class="grid status-grid">
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
+          <div class="value" id="sWeight">—</div>
+          <div class="label">Weight</div>
+          <div class="subvalue" id="sWeightSub">—</div>
+        </div>
+
+        <div class="metric clickable" onclick="openHistory('run')" title="View & edit run history">
+          <div class="value" id="sAEI">—</div>
+          <div class="label">AEI (rolling)</div>
+          <div class="subvalue" id="sAEISub">—</div>
+        </div>
+
+        <div class="metric clickable" onclick="openHistory('bench')" title="View & edit bench history">
+          <div class="value" id="sBench">—</div>
+          <div class="label">Bench 1RM</div>
+          <div class="subvalue" id="sBenchSub">—</div>
+        </div>
+      </div>
     </div>
 
-    <div class="trend-row clickable" onclick="openHistory('bench')">
-      <div>
-        <div class="trend-title">Bench</div>
-        <div class="trend-meta" id="tBenchMeta">—</div>
+    <!-- TODAY -->
+    <div class="card today" id="todayCard">
+      <div class="card-title">
+        <h2>Today</h2>
+        <span class="badge-date mono" id="todayChip">—</span>
       </div>
-      <div id="tBenchState" class="holding">Holding</div>
-    </div>
-  </div>
 
-  <!-- IMPORT (LAST) -->
-  <div class="card">
-    <div class="card-title">
-      <h2>Import</h2>
+      <div class="grid">
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
+          <div class="value" id="mWeight">—</div>
+          <div class="label">Weight (lbs)</div>
+        </div>
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit nutrition history">
+          <div class="value" id="mCalories">—</div>
+          <div class="label">Calories</div>
+        </div>
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit nutrition history">
+          <div class="value" id="mProtein">—</div>
+          <div class="label">Protein (g)</div>
+        </div>
+      </div>
+
+      <div class="pill clickable" onclick="openHistory('run')" title="View & edit run history">
+        <div class="left">
+          <div class="icon">🏃</div>
+          <div class="text" id="runLine">—</div>
+        </div>
+      </div>
+
+      <div class="pill clickable" onclick="openHistory('bench')" title="View & edit bench history">
+        <div class="left">
+          <div class="icon">🏋️</div>
+          <div class="text" id="liftLine">—</div>
+        </div>
+      </div>
     </div>
-    <textarea id="input">@day 2026-02-22
+
+    <!-- TRENDS -->
+    <div class="card">
+      <div class="card-title">
+        <h2>Trends</h2>
+        <div class="subtitle">Click Weight / Run / Bench to view history</div>
+      </div>
+
+      <div class="trend-row clickable" onclick="openHistory('weight')" title="View & edit weight history">
+        <div>
+          <div class="trend-title">Weight (weekly avg)</div>
+          <div class="trend-meta" id="tWeightMeta">—</div>
+        </div>
+        <div id="tWeightState" class="holding">Holding</div>
+      </div>
+
+      <div class="trend-row clickable" onclick="openHistory('run')" title="View & edit run history">
+        <div>
+          <div class="trend-title">Run (AEI)</div>
+          <div class="trend-meta" id="tRunMeta">—</div>
+        </div>
+        <div id="tRunState" class="holding">Holding</div>
+      </div>
+
+      <div class="trend-row clickable" onclick="openHistory('bench')" title="View & edit bench history">
+        <div>
+          <div class="trend-title">Bench</div>
+          <div class="trend-meta" id="tBenchMeta">—</div>
+        </div>
+        <div id="tBenchState" class="holding">Holding</div>
+      </div>
+    </div>
+
+    <!-- RUN GOALS -->
+    <div class="card">
+      <div class="card-title">
+        <h2>Run Goals</h2>
+        <div class="subtitle">Rolling 5-run AEI must meet/exceed goal (avg HR ≤ 160)</div>
+      </div>
+      <div class="goal" id="goal78">Goal 1: AEI 7.8 · —</div>
+      <div class="goal" id="goal82">Goal 2: AEI 8.2 · —</div>
+    </div>
+
+    <!-- BENCH GOALS -->
+    <div class="card">
+      <div class="card-title">
+        <h2>Bench Goals</h2>
+        <div class="subtitle">1RM + milestones</div>
+      </div>
+      <div class="goal" id="bench1rm">Estimated 1RM: —</div>
+      <div class="goal" id="bench200">200 × 5+: —</div>
+      <div class="goal" id="bench225">225 × 5+: —</div>
+    </div>
+
+    <!-- IMPORT (bottom) -->
+    <div class="card" id="importCard">
+      <div class="card-title">
+        <h2>Import</h2>
+        <div class="subtitle mono">(@day / @run / @lift)</div>
+      </div>
+
+      <div class="import-body" id="importBody">
+        <textarea id="input" class="mono" spellcheck="false">@day 2026-02-22
 weight: 181.0
 calories: 2100
 protein: 155</textarea>
-    <div class="actions">
-      <button class="primary" onclick="importData()">Import</button>
-      <button class="secondary" onclick="loadSample()">Load sample</button>
+
+        <div class="actions">
+          <button class="primary" onclick="importData()">Import</button>
+          <button class="secondary" onclick="loadSample()">Load sample</button>
+        </div>
+
+        <div class="tip">
+          Tip: paste <b>one</b> day or <b>many</b> days at once. Use <code>na</code> for missing values.
+        </div>
+      </div>
+
+      <div class="import-collapsed-row" id="importCollapsedRow">
+        <div>
+          <div class="import-confirm">
+            <span class="confirm-dot"></span>
+            <span class="confirm-text" id="importedLabel">Imported</span>
+          </div>
+          <div class="confirm-sub mono" id="importedStamp">—</div>
+        </div>
+        <button class="ghost" onclick="editImport()">Edit</button>
+      </div>
     </div>
   </div>
 
-</div>
-
-<!-- Modal shell (logic unchanged elsewhere in your file) -->
-<div class="modal-overlay" id="historyOverlay" onclick="closeHistory()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <strong id="histTitle">History</strong>
-      <button class="secondary" onclick="closeHistory()">Close</button>
+  <!-- HISTORY MODAL -->
+  <div class="modal-overlay" id="historyOverlay" onclick="overlayClose(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="histTitle" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-title" id="histTitle">History</div>
+          <div class="modal-sub" id="histSub">—</div>
+        </div>
+        <button class="secondary" onclick="closeHistory()">Close</button>
+      </div>
+      <div class="modal-body" id="histBody"></div>
     </div>
-    <div class="modal-body" id="histBody"></div>
   </div>
-</div>
 
 <script>
-/* Hooks only — your full logic remains unchanged */
-function openHistory(){document.getElementById("historyOverlay").classList.add("show")}
-function closeHistory(){document.getElementById("historyOverlay").classList.remove("show")}
-function importData(){alert("Import logic unchanged")}
-function loadSample(){alert("Sample loaded")}
-</script>
+/* ========== Utilities ========== */
+function clean(v){
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (s.toLowerCase() === "na") return null;
+  return s;
+}
+function num(v){
+  const s = clean(v);
+  if (s == null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function parseISODate(iso){
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+}
+function isoFromUTCDate(d){
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2,"0");
+  const dd = String(d.getUTCDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function daysBetweenUTC(a, b){
+  const ms = b.getTime() - a.getTime();
+  return Math.round(ms / (1000*60*60*24));
+}
+function epley(w, r){ return Math.round(w * (1 + r / 30)); }
 
+function paceToSeconds(paceStr){
+  const s = clean(paceStr);
+  if (!s) return null;
+  const m = s.match(/^(\d+):([0-5]\d)$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+function mphFromPaceSeconds(paceSec){
+  if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
+  return 3600 / paceSec;
+}
+function deviceISODateLocal(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+/* Monday-start week key (UTC) */
+function weekStartMondayISO(isoDate){
+  const d = parseISODate(isoDate);
+  if (!d) return null;
+  const dayMon0 = (d.getUTCDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - dayMon0);
+  return isoFromUTCDate(monday);
+}
+
+/* ========== Storage ========== */
+const STORAGE_KEY = "plog_days_v1";
+const LAST_IMPORT_KEY = "plog_last_import_ms_v1";
+const MAX_HR_KEY = "plog_max_hr_v1";
+
+/* No settings card; max_hr still supported via localStorage. Default 195. */
+function getMaxHr(){
+  const raw = localStorage.getItem(MAX_HR_KEY);
+  const v = raw ? Number(raw) : NaN;
+  return Number.isFinite(v) && v >= 120 && v <= 240 ? v : 195;
+}
+function loadDays(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
+function saveDays(arr){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+function upsertDay(entry){
+  const days = loadDays();
+  const idx = days.findIndex(d => d.date === entry.date);
+  if (idx >= 0) days[idx] = entry;
+  else days.push(entry);
+  days.sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  saveDays(days);
+  return days;
+}
+function latestDateFromDays(days){
+  if (!days.length) return null;
+  return days[days.length - 1].date || null;
+}
+
+/* ===== Last import timestamp ===== */
+function formatImportStampFromMs(ms){
+  if (!ms || !Number.isFinite(ms)) return "—";
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2,"0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
+  let hh = d.getHours();
+  const ampm = hh >= 12 ? "PM" : "AM";
+  hh = hh % 12; if (hh === 0) hh = 12;
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd} · ${hh}:${min} ${ampm}`;
+}
+function setLastImportNow(){
+  const ms = Date.now();
+  localStorage.setItem(LAST_IMPORT_KEY, String(ms));
+  renderLastImport();
+  return ms;
+}
+function getLastImportMs(){
+  const raw = localStorage.getItem(LAST_IMPORT_KEY);
+  const ms = raw ? Number(raw) : NaN;
+  return Number.isFinite(ms) ? ms : null;
+}
+function renderLastImport(){
+  const ms = getLastImportMs();
+  const stamp = formatImportStampFromMs(ms);
+  const top = document.getElementById("lastImportTop");
+  const today = document.getElementById("lastImportToday");
+  const collapsed = document.getElementById("importedStamp");
+  if (top) top.textContent = stamp;
+  if (today) today.textContent = stamp;
+  if (collapsed && ms) collapsed.textContent = stamp;
+}
+
+/* ========== AEI helpers ========== */
+/* AEI = mph / (avg_hr / max_hr) = mph * (max_hr / avg_hr). Higher is better. */
+function computeAEI(paceSec, avgHr, maxHr){
+  if (!Number.isFinite(paceSec) || paceSec <= 0) return null;
+  if (!Number.isFinite(avgHr) || avgHr <= 0) return null;
+  if (!Number.isFinite(maxHr) || maxHr <= 0) return null;
+  const mph = mphFromPaceSeconds(paceSec);
+  if (mph == null) return null;
+  return mph * (maxHr / avgHr);
+}
+function avg(nums){
+  const a = nums.filter(x => Number.isFinite(x));
+  if (!a.length) return null;
+  return a.reduce((s,x)=>s+x,0) / a.length;
+}
+
+/* ========== Parsing Snapshot (single block) ========== */
+function parseSnapshot(text){
+  const lines = text.split("\n").map(l => l.trim());
+  let section = null;
+
+  const day = {};
+  const run = {};
+  const lift = {};
+
+  const dm = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+  const date = dm ? dm[1] : null;
+
+  for (const line of lines){
+    if (!line) continue;
+    if (line.startsWith("@")){
+      section = line.slice(1).trim().split(/\s+/)[0].toLowerCase();
+      continue;
+    }
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+
+    const k = line.slice(0, idx).trim();
+    const v = clean(line.slice(idx + 1).trim());
+    if (!k || v == null) continue;
+
+    if (section === "day") day[k] = v;
+    if (section === "run") run[k] = v;
+    if (section === "lift") lift[k] = v;
+  }
+
+  return { date: date || "—", day, run, lift };
+}
+
+/* ========== Bulk splitting ========== */
+function splitIntoDayBlocks(raw){
+  const text = String(raw || "").replace(/\r\n/g, "\n").trim();
+  if (!text) return [];
+
+  const lines = text.split("\n");
+  const blocks = [];
+  let buf = [];
+
+  const isDayLine = (line) => /^@day\s+\d{4}-\d{2}-\d{2}\b/.test(line.trim());
+
+  for (const line of lines){
+    if (isDayLine(line)){
+      if (buf.length) blocks.push(buf.join("\n").trim());
+      buf = [line.trim()];
+    } else {
+      if (buf.length) buf.push(line);
+    }
+  }
+  if (buf.length) blocks.push(buf.join("\n").trim());
+  return blocks.filter(b => /^@day\s+\d{4}-\d{2}-\d{2}\b/.test(b));
+}
+
+function buildEntryFromParsed(parsed){
+  const entry = {
+    date: parsed.date,
+    weight: num(parsed.day.weight),
+    calories: num(parsed.day.calories),
+    protein: num(parsed.day.protein),
+    run: {
+      type: clean(parsed.run.type),
+      distance_mi: num(parsed.run.distance_mi),
+      duration: clean(parsed.run.duration),
+      avg_pace: clean(parsed.run.avg_pace),
+      avg_hr: num(parsed.run.avg_hr)
+    },
+    lift: parsed.lift || {},
+    bench: null
+  };
+  recomputeBench(entry);
+  return entry;
+}
+
+/* ========== Import collapse controls ========== */
+function collapseImport(labelText){
+  document.getElementById("importCard").classList.add("is-collapsed");
+  const ms = setLastImportNow();
+  document.getElementById("importedStamp").textContent = formatImportStampFromMs(ms);
+  document.getElementById("importedLabel").textContent = labelText || "Imported";
+}
+function editImport(){
+  document.getElementById("importCard").classList.remove("is-collapsed");
+  setTimeout(() => document.getElementById("input").focus(), 150);
+}
+
+/* ========== Bench recompute helper ========== */
+function recomputeBench(entry){
+  if (!entry || !entry.lift || !entry.lift.bench_press){
+    entry.bench = null;
+    return entry;
+  }
+  const raw = String(entry.lift.bench_press);
+  const sets = raw.split(",")
+    .map(s => s.trim())
+    .map(s => {
+      const m = s.match(/^(\d+)\s*x\s*(\d+)$/i);
+      if (!m) return null;
+      return { w: Number(m[1]), r: Number(m[2]) };
+    })
+    .filter(Boolean);
+
+  if (!sets.length){
+    entry.bench = null;
+    return entry;
+  }
+
+  const est1rm = Math.max(...sets.map(s => epley(s.w, s.r)));
+  const hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+  const hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
+  entry.bench = { est1rm, hit200, hit225 };
+  return entry;
+}
+
+/* ========== Rendering: Current Status ========== */
+function renderCurrentStatus(days){
+  const latestISO = latestDateFromDays(days);
+  document.getElementById("snapshotDate").textContent = latestISO || "—";
+
+  const today = deviceISODateLocal();
+  document.getElementById("actualTodayDate").textContent = today;
+  document.getElementById("todayChip").textContent = today;
+
+  // Latest weight
+  const weightEntries = days
+    .filter(d => d.date && d.weight != null && Number.isFinite(d.weight))
+    .slice()
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  const latestWeight = weightEntries.length ? weightEntries.at(-1) : null;
+  document.getElementById("sWeight").textContent = latestWeight ? `${latestWeight.weight.toFixed(1)}` : "—";
+
+  // Weight sub: last completed week avg with >=3 weigh-ins
+  const MIN_WEIGHINS_PER_WEEK = 3;
+  const latestD = latestISO ? parseISODate(latestISO) : null;
+
+  const buckets = new Map();
+  for (const d of weightEntries){
+    const wk = weekStartMondayISO(d.date);
+    if (!wk) continue;
+    if (!buckets.has(wk)) buckets.set(wk, {sum:0, count:0});
+    const b = buckets.get(wk);
+    b.sum += d.weight;
+    b.count += 1;
+  }
+  const weeks = Array.from(buckets.entries())
+    .map(([weekStart, b]) => ({ weekStart, avg: b.sum/b.count, count: b.count }))
+    .sort((a,b)=> (a.weekStart > b.weekStart ? 1 : a.weekStart < b.weekStart ? -1 : 0));
+
+  let lastCompletedWeekStart = null;
+  if (latestD){
+    const dow = latestD.getUTCDay(); // Sun=0
+    const dayMon0 = (dow + 6) % 7;
+    const currentWeekMonday = new Date(latestD);
+    currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
+    const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
+
+    if (dow === 0) lastCompletedWeekStart = currentWeekStartISO;
+    else {
+      const prevWeekMonday = new Date(currentWeekMonday);
+      prevWeekMonday.setUTCDate(currentWeekMonday.getUTCDate() - 7);
+      lastCompletedWeekStart = isoFromUTCDate(prevWeekMonday);
+    }
+  }
+
+  const completedWeeks = weeks.filter(w => !lastCompletedWeekStart || w.weekStart <= lastCompletedWeekStart);
+  let lastGood = null;
+  for (let i = completedWeeks.length - 1; i >= 0; i--){
+    if (completedWeeks[i].count >= MIN_WEIGHINS_PER_WEEK){ lastGood = completedWeeks[i]; break; }
+  }
+  document.getElementById("sWeightSub").textContent = lastGood
+    ? `Last wk avg ${lastGood.avg.toFixed(1)} (n=${lastGood.count})`
+    : (weightEntries.length ? `Need ${MIN_WEIGHINS_PER_WEEK}+ weigh-ins in a completed week` : "No weight yet");
+
+  // AEI rolling 5-run (qualifying HR<=160)
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
+  const qualifyingRuns = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const aei = computeAEI(paceSec, d.run.avg_hr, maxHr);
+      return { date: d.date, aei, pace: d.run.avg_pace, hr: d.run.avg_hr };
+    })
+    .filter(r => r.aei != null && Number.isFinite(r.hr) && r.hr <= RUN_HR_CAP)
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const lastRun = qualifyingRuns.length ? qualifyingRuns.at(-1) : null;
+  const last5 = qualifyingRuns.slice(-5);
+  const rolling5 = (last5.length === 5) ? avg(last5.map(r => r.aei)) : null;
+
+  document.getElementById("sAEI").textContent = rolling5 != null ? rolling5.toFixed(2) : "—";
+  if (!qualifyingRuns.length){
+    document.getElementById("sAEISub").textContent = "No qualifying runs yet";
+  } else if (rolling5 == null){
+    document.getElementById("sAEISub").textContent = `Need ${5 - last5.length} more qualifying run(s)`;
+  } else {
+    document.getElementById("sAEISub").textContent = lastRun
+      ? `Last ${lastRun.aei.toFixed(2)} · ${lastRun.date}`
+      : "—";
+  }
+
+  // Bench latest
+  const benchSessions = days
+    .filter(d => d.bench && d.bench.est1rm != null && d.date)
+    .slice()
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  const lastBench = benchSessions.length ? benchSessions.at(-1) : null;
+  document.getElementById("sBench").textContent = lastBench ? String(lastBench.bench.est1rm) : "—";
+  document.getElementById("sBenchSub").textContent = lastBench
+    ? `200x5 ${lastBench.bench.hit200 ? "yes" : "no"} · 225x5 ${lastBench.bench.hit225 ? "yes" : "no"}`
+    : "No bench yet";
+}
+
+/* ========== Rendering: Today details ========== */
+function renderTodayFromLatest(dayEntry){
+  document.getElementById("mWeight").textContent = (dayEntry.weight != null) ? dayEntry.weight.toFixed(1) : "—";
+  document.getElementById("mCalories").textContent = (dayEntry.calories != null) ? String(Math.round(dayEntry.calories)) : "—";
+  document.getElementById("mProtein").textContent = (dayEntry.protein != null) ? String(Math.round(dayEntry.protein)) : "—";
+
+  const r = dayEntry.run || {};
+  if (r.avg_pace || r.avg_hr || r.distance_mi || r.type){
+    const parts = [];
+    const maxHr = getMaxHr();
+    const paceSec = paceToSeconds(r.avg_pace);
+    const aei = computeAEI(paceSec, r.avg_hr, maxHr);
+    if (r.type) parts.push(r.type);
+    if (r.distance_mi != null) parts.push(`${r.distance_mi} mi`);
+    if (r.avg_pace) parts.push(`pace ${r.avg_pace}`);
+    if (r.avg_hr != null) parts.push(`HR ${r.avg_hr}`);
+    if (aei != null) parts.push(`AEI ${aei.toFixed(2)}`);
+    document.getElementById("runLine").textContent = parts.join(" · ");
+  } else {
+    document.getElementById("runLine").textContent = "—";
+  }
+
+  const liftKeys = [];
+  if (dayEntry.lift && typeof dayEntry.lift === "object"){
+    for (const k of Object.keys(dayEntry.lift)){
+      if (clean(dayEntry.lift[k]) != null) liftKeys.push(k);
+    }
+  }
+  document.getElementById("liftLine").textContent = liftKeys.length ? liftKeys.join(", ") : "—";
+}
+
+/* ========== Signals ========== */
+function setTrendState(elId, state){
+  const el = document.getElementById(elId);
+  el.className = "";
+  if (!state || state.kind === "holding"){
+    el.className = "holding";
+    el.textContent = "Holding";
+    return;
+  }
+  el.className = "arrow" + (state.improving ? " green" : "");
+  el.textContent = state.arrow;
+}
+
+/* ========== Trends ========== */
+function renderTrends(days){
+  const latestISO = latestDateFromDays(days);
+  const latestD = latestISO ? parseISODate(latestISO) : null;
+
+  /* ===== WEIGHT: weekly averages ===== */
+  const MIN_WEIGHINS_PER_WEEK = 3;
+  const WEIGHT_TOL_LBS = 0.15;
+
+  const weightDays = days
+    .filter(d => d.weight != null && Number.isFinite(d.weight) && d.date)
+    .map(d => ({ date: d.date, w: d.weight }))
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const buckets = new Map();
+  for (const item of weightDays){
+    const wk = weekStartMondayISO(item.date);
+    if (!wk) continue;
+    if (!buckets.has(wk)){
+      buckets.set(wk, { sum: 0, count: 0, high: -Infinity, low: Infinity });
+    }
+    const b = buckets.get(wk);
+    b.sum += item.w;
+    b.count += 1;
+    b.high = Math.max(b.high, item.w);
+    b.low = Math.min(b.low, item.w);
+  }
+
+  const weeks = Array.from(buckets.entries())
+    .map(([weekStart, b]) => ({
+      weekStart,
+      avg: b.sum / b.count,
+      count: b.count,
+      high: b.high,
+      low: b.low
+    }))
+    .sort((a,b) => (a.weekStart > b.weekStart ? 1 : a.weekStart < b.weekStart ? -1 : 0));
+
+  let lastCompletedWeekStart = null;
+  if (latestD){
+    const dow = latestD.getUTCDay();
+    const dayMon0 = (dow + 6) % 7;
+    const currentWeekMonday = new Date(latestD);
+    currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
+    const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
+
+    if (dow === 0){
+      lastCompletedWeekStart = currentWeekStartISO;
+    } else {
+      const prevWeekMonday = new Date(currentWeekMonday);
+      prevWeekMonday.setUTCDate(currentWeekMonday.getUTCDate() - 7);
+      lastCompletedWeekStart = isoFromUTCDate(prevWeekMonday);
+    }
+  }
+
+  const completedWeeks = weeks.filter(w => {
+    if (!lastCompletedWeekStart) return true;
+    return w.weekStart <= lastCompletedWeekStart;
+  });
+
+  const last = completedWeeks.length ? completedWeeks[completedWeeks.length - 1] : null;
+
+  if (!last){
+    document.getElementById("tWeightMeta").textContent = "No weight data yet.";
+    setTrendState("tWeightState", {kind:"holding"});
+  } else {
+    let lastIdx = completedWeeks.length - 1;
+    let lastGood = last;
+    while (lastGood && lastGood.count < MIN_WEIGHINS_PER_WEEK){
+      lastIdx--;
+      lastGood = lastIdx >= 0 ? completedWeeks[lastIdx] : null;
+    }
+
+    if (!lastGood){
+      document.getElementById("tWeightMeta").textContent = `Need ${MIN_WEIGHINS_PER_WEEK}+ weigh-ins in a completed week to compute trend.`;
+      setTrendState("tWeightState", {kind:"holding"});
+    } else {
+      let prevIdx = lastIdx - 1;
+      let prevGood = prevIdx >= 0 ? completedWeeks[prevIdx] : null;
+      while (prevGood && prevGood.count < MIN_WEIGHINS_PER_WEEK){
+        prevIdx--;
+        prevGood = prevIdx >= 0 ? completedWeeks[prevIdx] : null;
+      }
+
+      let state = {kind:"holding"};
+      if (prevGood){
+        if (lastGood.avg < prevGood.avg - WEIGHT_TOL_LBS) state = {kind:"arrow", arrow:"↓", improving:true};
+        else if (lastGood.avg > prevGood.avg + WEIGHT_TOL_LBS) state = {kind:"arrow", arrow:"↑", improving:false};
+      }
+
+      const startD = parseISODate(lastGood.weekStart);
+      const endD = startD ? new Date(startD) : null;
+      if (endD) endD.setUTCDate(endD.getUTCDate() + 6);
+      const endISO = endD ? isoFromUTCDate(endD) : "—";
+
+      const range = `${lastGood.weekStart} → ${endISO}`;
+      const lastLine = `Completed week avg: ${lastGood.avg.toFixed(1)} (n=${lastGood.count}) · high ${lastGood.high.toFixed(1)} · low ${lastGood.low.toFixed(1)}`;
+      const prevLine = prevGood
+        ? `Prev completed week avg: ${prevGood.avg.toFixed(1)} (n=${prevGood.count})`
+        : `Prev completed week avg: —`;
+
+      document.getElementById("tWeightMeta").textContent = `${range} · ${lastLine} | ${prevLine}`;
+      setTrendState("tWeightState", state);
+    }
+  }
+
+  /* ===== RUN: AEI rolling + block comparison ===== */
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
+  const qualifyingRuns = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const hr = d.run.avg_hr;
+      const aei = computeAEI(paceSec, hr, maxHr);
+      return {
+        date: d.date,
+        dateObj: parseISODate(d.date),
+        paceStr: d.run.avg_pace,
+        paceSec,
+        avg_hr: hr,
+        aei
+      };
+    })
+    .filter(r => r.dateObj && r.paceSec != null && Number.isFinite(r.avg_hr) && r.avg_hr <= RUN_HR_CAP && r.aei != null)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  if (!qualifyingRuns.length){
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (needs pace + avg HR ≤ 160).";
+    setTrendState("tRunState", {kind:"holding"});
+  } else {
+    const lastRun = qualifyingRuns[qualifyingRuns.length - 1];
+    const last5 = qualifyingRuns.slice(-5);
+    const rolling5 = avg(last5.map(r => r.aei));
+
+    const last3 = qualifyingRuns.slice(-3);
+    const prev3 = qualifyingRuns.slice(-6, -3);
+
+    const avgLast3 = avg(last3.map(r => r.aei));
+    const avgPrev3 = (prev3.length === 3) ? avg(prev3.map(r => r.aei)) : null;
+
+    let state = {kind:"holding"};
+    if (avgPrev3 != null && avgLast3 != null){
+      const tol = 0.03;
+      if (avgLast3 > avgPrev3 + tol) state = {kind:"arrow", arrow:"↑", improving:true};
+      else if (avgLast3 < avgPrev3 - tol) state = {kind:"arrow", arrow:"↓", improving:false};
+    }
+
+    let stale = "";
+    if (latestD && lastRun.dateObj){
+      const gap = daysBetweenUTC(lastRun.dateObj, latestD);
+      stale = ` · ${gap}d ago`;
+    }
+
+    const rollingLine = (rolling5 != null)
+      ? `Rolling AEI (last 5): ${rolling5.toFixed(2)}`
+      : `Rolling AEI (last 5): —`;
+
+    const blockLine = (avgPrev3 != null)
+      ? `Blocks: last 3 = ${avgLast3.toFixed(2)} vs prior 3 = ${avgPrev3.toFixed(2)}`
+      : `Blocks: need 6 qualifying runs (have ${qualifyingRuns.length})`;
+
+    document.getElementById("tRunMeta").textContent =
+      `maxHR ${maxHr} · Last: ${lastRun.date}${stale} · AEI ${lastRun.aei.toFixed(2)} (${lastRun.paceStr} @ HR ${lastRun.avg_hr}) | ${rollingLine} | ${blockLine}`;
+
+    setTrendState("tRunState", state);
+  }
+
+  /* ===== BENCH ===== */
+  const benchSessions = days
+    .filter(d => d.bench && d.bench.est1rm != null)
+    .map(d => ({
+      date: d.date,
+      dateObj: parseISODate(d.date),
+      est1rm: d.bench.est1rm
+    }))
+    .filter(b => b.dateObj && Number.isFinite(b.est1rm))
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  if (!benchSessions.length){
+    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+    setTrendState("tBenchState", {kind:"holding"});
+  } else {
+    const lastB = benchSessions[benchSessions.length - 1];
+    const prevB = benchSessions.length >= 2 ? benchSessions[benchSessions.length - 2] : null;
+
+    let stale = "";
+    if (latestD && lastB.dateObj){
+      const gap = daysBetweenUTC(lastB.dateObj, latestD);
+      stale = ` · ${gap}d ago`;
+    }
+
+    let state = {kind:"holding"};
+    if (prevB){
+      const tol = 1;
+      if (lastB.est1rm > prevB.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};
+      else if (lastB.est1rm < prevB.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};
+    }
+
+    document.getElementById("tBenchMeta").textContent =
+      prevB
+        ? `Last: ${lastB.date}${stale} · ${lastB.est1rm} | Prev: ${prevB.est1rm}`
+        : `Last: ${lastB.date}${stale} · ${lastB.est1rm} | Prev: —`;
+
+    setTrendState("tBenchState", state);
+  }
+}
+
+/* ========== Run Goals (rolling AEI) ========== */
+function renderRunGoals(days){
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
+  const runs = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const aei = computeAEI(paceSec, d.run.avg_hr, maxHr);
+      return { date: d.date, hr: d.run.avg_hr, aei };
+    })
+    .filter(r => Number.isFinite(r.hr) && r.hr <= RUN_HR_CAP && r.aei != null)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const last5 = runs.slice(-5);
+  const rolling5 = (last5.length === 5) ? avg(last5.map(r => r.aei)) : null;
+
+  function goalLine(goal){
+    if (rolling5 == null){
+      const have = runs.length;
+      return `Need 5 qualifying runs (have ${have})`;
+    }
+    return (rolling5 >= goal) ? `Met ✓ (rolling ${rolling5.toFixed(2)})` : `Not yet (rolling ${rolling5.toFixed(2)})`;
+  }
+
+  document.getElementById("goal78").textContent = `Goal 1: AEI 7.8 · ${goalLine(7.8)}`;
+  document.getElementById("goal82").textContent = `Goal 2: AEI 8.2 · ${goalLine(8.2)}`;
+}
+
+/* ========== Bench Goals ========== */
+function renderBenchGoalsFromLatest(days){
+  const benches = days
+    .filter(d => d.bench && d.bench.est1rm != null)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  const last = benches.length ? benches[benches.length - 1] : null;
+
+  if (!last){
+    document.getElementById("bench1rm").textContent = "Estimated 1RM: —";
+    document.getElementById("bench200").textContent = "200 × 5+: —";
+    document.getElementById("bench225").textContent = "225 × 5+: —";
+    return;
+  }
+
+  document.getElementById("bench1rm").textContent = `Estimated 1RM: ${last.bench.est1rm}`;
+  document.getElementById("bench200").textContent = `200 × 5+: ${last.bench.hit200 ? "true" : "false"}`;
+  document.getElementById("bench225").textContent = `225 × 5+: ${last.bench.hit225 ? "true" : "false"}`;
+}
+
+/* ========== History Modal ========== */
+let HISTORY_MODE = "weight";
+
+function openHistory(mode){
+  HISTORY_MODE = mode;
+  renderHistory(mode);
+  document.getElementById("historyOverlay").classList.add("show");
+}
+function closeHistory(){
+  document.getElementById("historyOverlay").classList.remove("show");
+}
+function overlayClose(e){
+  closeHistory();
+}
+
+function renderHistory(mode){
+  const days = loadDays().slice().sort((a,b)=> (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+  const title = document.getElementById("histTitle");
+  const sub = document.getElementById("histSub");
+  const body = document.getElementById("histBody");
+
+  let rows = [];
+
+  if (mode === "weight"){
+    title.textContent = "Weight History";
+    sub.textContent = "Edit a date’s weight, calories, and protein.";
+    rows = days.filter(d => d.weight != null || d.calories != null || d.protein != null);
+  }
+  if (mode === "run"){
+    title.textContent = "Run History";
+    sub.textContent = "Edit pace (mm:ss) and avg HR. AEI shown for qualifying runs (avg HR ≤ 160).";
+    rows = days.filter(d => d.run && (d.run.avg_pace || d.run.avg_hr != null || d.run.distance_mi != null || d.run.type));
+  }
+  if (mode === "bench"){
+    title.textContent = "Bench History";
+    sub.textContent = "Edit bench_press sets (e.g., 200x5, 185x8).";
+    rows = days.filter(d => d.lift && d.lift.bench_press != null);
+  }
+
+  if (!rows.length){
+    body.innerHTML = `<div class="small-note">No entries yet for this category.</div>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(d => historyRowHTML(mode, d.date)).join("");
+
+  for (const d of rows){
+    const rowEl = document.getElementById(`row-${mode}-${d.date}`);
+    if (!rowEl) continue;
+    fillRow(mode, d, rowEl);
+  }
+}
+
+function historyRowHTML(mode, date){
+  return `
+  <div class="hist-row" id="row-${mode}-${date}">
+    <div class="hist-top">
+      <div>
+        <div class="hist-date">${date}</div>
+        <div class="hist-summary" id="sum-${mode}-${date}">—</div>
+        <div class="hist-meta" id="meta-${mode}-${date}">—</div>
+      </div>
+      <div class="hist-actions">
+        <button class="ghost" onclick="toggleEdit('${mode}','${date}')">Edit</button>
+        <button class="danger" onclick="deleteCategory('${mode}','${date}')">Clear</button>
+      </div>
+    </div>
+
+    <div class="edit-area" id="edit-${mode}-${date}">
+      ${editFieldsHTML(mode, date)}
+      <div class="actions" style="margin-top:12px;">
+        <button class="primary" onclick="saveEdit('${mode}','${date}')">Save</button>
+        <button class="secondary" onclick="toggleEdit('${mode}','${date}', true)">Cancel</button>
+      </div>
+      <div class="small-note" id="note-${mode}-${date}"></div>
+    </div>
+  </div>`;
+}
+
+function editFieldsHTML(mode, date){
+  if (mode === "weight"){
+    return `
+      <div class="field">
+        <label>weight (lbs)</label>
+        <input id="inp-${mode}-${date}-weight" placeholder="e.g. 181.0" />
+      </div>
+      <div class="field">
+        <label>calories</label>
+        <input id="inp-${mode}-${date}-calories" placeholder="e.g. 2100 or na" />
+      </div>
+      <div class="field">
+        <label>protein (g)</label>
+        <input id="inp-${mode}-${date}-protein" placeholder="e.g. 155 or na" />
+      </div>
+    `;
+  }
+  if (mode === "run"){
+    return `
+      <div class="field">
+        <label>type</label>
+        <input id="inp-${mode}-${date}-type" placeholder="e.g. easy" />
+      </div>
+      <div class="field">
+        <label>distance_mi</label>
+        <input id="inp-${mode}-${date}-distance" placeholder="e.g. 3.5 or na" />
+      </div>
+      <div class="field">
+        <label>avg_pace (mm:ss)</label>
+        <input id="inp-${mode}-${date}-pace" placeholder="e.g. 10:51" />
+      </div>
+      <div class="field">
+        <label>avg_hr</label>
+        <input id="inp-${mode}-${date}-hr" placeholder="e.g. 153 or na" />
+      </div>
+    `;
+  }
+  return `
+    <div class="field">
+      <label>bench_press sets</label>
+      <input id="inp-${mode}-${date}-bench" placeholder="e.g. 200x5, 185x8" />
+    </div>
+  `;
+}
+
+function fillRow(mode, day, rowEl){
+  const date = day.date;
+  const sumEl = rowEl.querySelector(`#sum-${mode}-${date}`);
+  const metaEl = rowEl.querySelector(`#meta-${mode}-${date}`);
+
+  if (mode === "weight"){
+    const w = (day.weight != null) ? day.weight.toFixed(1) : "—";
+    const c = (day.calories != null) ? Math.round(day.calories) : "—";
+    const p = (day.protein != null) ? Math.round(day.protein) : "—";
+    sumEl.textContent = `Weight ${w}`;
+    metaEl.textContent = `Calories ${c} · Protein ${p}`;
+
+    rowEl.querySelector(`#inp-${mode}-${date}-weight`).value = (day.weight != null) ? day.weight.toFixed(1) : "";
+    rowEl.querySelector(`#inp-${mode}-${date}-calories`).value = (day.calories != null) ? String(Math.round(day.calories)) : "";
+    rowEl.querySelector(`#inp-${mode}-${date}-protein`).value = (day.protein != null) ? String(Math.round(day.protein)) : "";
+    return;
+  }
+
+  if (mode === "run"){
+    const r = day.run || {};
+    const type = r.type || "—";
+    const dist = (r.distance_mi != null) ? r.distance_mi : "—";
+    const pace = r.avg_pace || "—";
+    const hr = (r.avg_hr != null) ? r.avg_hr : "—";
+
+    const maxHr = getMaxHr();
+    const paceSec = paceToSeconds(pace);
+    const aei = computeAEI(paceSec, r.avg_hr, maxHr);
+
+    sumEl.textContent = `${type} · ${dist} mi · pace ${pace} · HR ${hr}${aei != null ? ` · AEI ${aei.toFixed(2)}` : ""}`;
+
+    const paceOk = paceToSeconds(pace) != null;
+    const hrOk = (r.avg_hr != null && Number.isFinite(r.avg_hr)) ? (r.avg_hr <= 160) : false;
+    metaEl.textContent = (paceOk && hrOk && aei != null)
+      ? `Qualifies (maxHR ${maxHr})`
+      : `Does not qualify (needs pace + avg HR ≤ 160)`;
+
+    rowEl.querySelector(`#inp-${mode}-${date}-type`).value = r.type || "";
+    rowEl.querySelector(`#inp-${mode}-${date}-distance`).value = (r.distance_mi != null) ? String(r.distance_mi) : "";
+    rowEl.querySelector(`#inp-${mode}-${date}-pace`).value = r.avg_pace || "";
+    rowEl.querySelector(`#inp-${mode}-${date}-hr`).value = (r.avg_hr != null) ? String(r.avg_hr) : "";
+    return;
+  }
+
+  const bp = (day.lift && day.lift.bench_press != null) ? String(day.lift.bench_press) : "—";
+  const est = (day.bench && day.bench.est1rm != null) ? day.bench.est1rm : "—";
+  sumEl.textContent = `bench_press: ${bp}`;
+  metaEl.textContent = `Estimated 1RM: ${est}`;
+
+  rowEl.querySelector(`#inp-${mode}-${date}-bench`).value = (day.lift && day.lift.bench_press != null) ? String(day.lift.bench_press) : "";
+}
+
+function toggleEdit(mode, date, cancel=false){
+  const row = document.getElementById(`row-${mode}-${date}`);
+  if (!row) return;
+
+  if (cancel){
+    const days = loadDays();
+    const d = days.find(x => x.date === date);
+    if (d) fillRow(mode, d, row);
+  }
+  row.classList.toggle("editing");
+}
+
+function saveEdit(mode, date){
+  const days = loadDays();
+  const idx = days.findIndex(d => d.date === date);
+  if (idx < 0) return;
+
+  const d = days[idx];
+  const noteEl = document.getElementById(`note-${mode}-${date}`);
+  const setNote = (msg) => noteEl.textContent = msg || "";
+
+  if (mode === "weight"){
+    const w = clean(document.getElementById(`inp-${mode}-${date}-weight`).value);
+    const c = clean(document.getElementById(`inp-${mode}-${date}-calories`).value);
+    const p = clean(document.getElementById(`inp-${mode}-${date}-protein`).value);
+
+    d.weight = (w ? num(w) : null);
+    d.calories = (c ? num(c) : null);
+    d.protein = (p ? num(p) : null);
+    setNote("Saved.");
+  }
+
+  if (mode === "run"){
+    d.run = d.run || {};
+    const type = clean(document.getElementById(`inp-${mode}-${date}-type`).value);
+    const dist = clean(document.getElementById(`inp-${mode}-${date}-distance`).value);
+    const pace = clean(document.getElementById(`inp-${mode}-${date}-pace`).value);
+    const hr = clean(document.getElementById(`inp-${mode}-${date}-hr`).value);
+
+    if (pace && paceToSeconds(pace) == null){
+      setNote("avg_pace must be mm:ss (e.g., 10:51). Not saved.");
+      return;
+    }
+
+    d.run.type = type;
+    d.run.distance_mi = dist ? num(dist) : null;
+    d.run.avg_pace = pace;
+    d.run.avg_hr = hr ? num(hr) : null;
+    setNote("Saved.");
+  }
+
+  if (mode === "bench"){
+    d.lift = d.lift || {};
+    const benchStr = clean(document.getElementById(`inp-${mode}-${date}-bench`).value);
+
+    if (!benchStr){
+      delete d.lift.bench_press;
+      d.bench = null;
+      setNote("Cleared bench_press for this date.");
+    } else {
+      const tokens = benchStr.split(",").map(s => s.trim()).filter(Boolean);
+      const allValid = tokens.every(t => /^(\d+)\s*x\s*(\d+)$/i.test(t));
+      if (!allValid){
+        setNote("Use format like: 200x5, 185x8. Not saved.");
+        return;
+      }
+      d.lift.bench_press = benchStr;
+      recomputeBench(d);
+      setNote("Saved and recalculated bench 1RM/goals.");
+    }
+  }
+
+  days[idx] = d;
+  days.sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  saveDays(days);
+
+  refreshAll(days);
+  renderHistory(HISTORY_MODE);
+}
+
+function deleteCategory(mode, date){
+  const days = loadDays();
+  const idx = days.findIndex(d => d.date === date);
+  if (idx < 0) return;
+  const d = days[idx];
+
+  if (mode === "weight"){
+    d.weight = null;
+    d.calories = null;
+    d.protein = null;
+  } else if (mode === "run"){
+    d.run = { type: null, distance_mi: null, duration: null, avg_pace: null, avg_hr: null };
+  } else {
+    if (d.lift) delete d.lift.bench_press;
+    d.bench = null;
+  }
+
+  days[idx] = d;
+  saveDays(days);
+  refreshAll(days);
+  renderHistory(HISTORY_MODE);
+}
+
+/* ========== Refresh helper ========== */
+function refreshAll(days){
+  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  document.getElementById("todayChip").textContent = deviceISODateLocal();
+  renderLastImport();
+
+  if (!days || !days.length){
+    document.getElementById("snapshotDate").textContent = "—";
+
+    document.getElementById("sWeight").textContent = "—";
+    document.getElementById("sAEI").textContent = "—";
+    document.getElementById("sBench").textContent = "—";
+    document.getElementById("sWeightSub").textContent = "No data yet";
+    document.getElementById("sAEISub").textContent = "No data yet";
+    document.getElementById("sBenchSub").textContent = "No data yet";
+
+    document.getElementById("mWeight").textContent = "—";
+    document.getElementById("mCalories").textContent = "—";
+    document.getElementById("mProtein").textContent = "—";
+    document.getElementById("runLine").textContent = "—";
+    document.getElementById("liftLine").textContent = "—";
+
+    document.getElementById("tWeightMeta").textContent = "No data yet.";
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (needs pace + avg HR ≤ 160).";
+    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+
+    setTrendState("tWeightState", {kind:"holding"});
+    setTrendState("tRunState", {kind:"holding"});
+    setTrendState("tBenchState", {kind:"holding"});
+
+    renderRunGoals([]);
+    renderBenchGoalsFromLatest([]);
+    return;
+  }
+
+  const latest = days.slice().sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0)).at(-1);
+
+  renderCurrentStatus(days);
+  renderTodayFromLatest(latest);
+  renderTrends(days);
+  renderRunGoals(days);
+  renderBenchGoalsFromLatest(days);
+}
+
+/* ========== Import Flow (supports bulk) ========== */
+function importData(){
+  const raw = document.getElementById("input").value;
+
+  const blocks = splitIntoDayBlocks(raw);
+  const effectiveBlocks = blocks.length ? blocks : [String(raw || "").trim()].filter(Boolean);
+
+  let imported = 0;
+
+  for (const block of effectiveBlocks){
+    const parsed = parseSnapshot(block);
+    if (!parsed.date || parsed.date === "—") continue;
+    const entry = buildEntryFromParsed(parsed);
+    upsertDay(entry);
+    imported++;
+  }
+
+  const days = loadDays();
+  refreshAll(days);
+
+  if (imported === 0){
+    editImport();
+    alert("Import failed: no valid @day blocks found. Each block must start with '@day YYYY-MM-DD'.");
+    return;
+  }
+
+  const label = imported > 1 ? `Imported ${imported} days` : "Imported";
+  collapseImport(label);
+
+  setTimeout(() => {
+    document.getElementById("statusCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }, 250);
+}
+
+function loadSample(){
+  document.getElementById("input").value =
+`@day ${deviceISODateLocal()}
+weight: 181.0
+calories: 2100
+protein: 155
+
+@run
+type: easy
+distance_mi: 3.5
+duration: 38:00
+avg_pace: 10:51
+avg_hr: 153
+
+@lift
+bench_press: 200x5, 185x8
+seated_row: 160x8
+leg_press: 360x10
+ez_bar_curl: 85x10`;
+}
+
+/* ========== Init ========== */
+(function init(){
+  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  document.getElementById("todayChip").textContent = deviceISODateLocal();
+  renderLastImport();
+  const days = loadDays();
+  refreshAll(days);
+})();
+</script>
 </body>
 </html>
