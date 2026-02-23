@@ -143,7 +143,7 @@ h1{
 /* Import content wrapper: collapses after import */
 .import-body{
   transition: max-height .38s ease, opacity .25s ease, margin-top .25s ease;
-  max-height: 460px;          /* enough to show textarea + actions + tip */
+  max-height: 520px;
   opacity: 1;
   overflow: hidden;
   margin-top: 0;
@@ -393,7 +393,7 @@ button.ghost:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v0.4</div>
+        <div class="version">A2 · v0.5</div>
       </div>
     </div>
 
@@ -404,7 +404,6 @@ button.ghost:hover{ filter: brightness(1.06); }
         <div class="subtitle mono">(@day / @run / @lift)</div>
       </div>
 
-      <!-- Collapses away after import -->
       <div class="import-body" id="importBody">
         <textarea id="input" class="mono" spellcheck="false">@day 2026-02-21
 weight: 182.0
@@ -432,7 +431,6 @@ ez_bar_curl: 85x10</textarea>
         <div class="tip">Tip: use <code>na</code> for missing values. Bench milestones require <b>5+ reps</b> to count.</div>
       </div>
 
-      <!-- Stays visible after import -->
       <div class="import-collapsed-row" id="importCollapsedRow">
         <div>
           <div class="import-confirm">
@@ -449,20 +447,20 @@ ez_bar_curl: 85x10</textarea>
     <div class="card today" id="todayCard">
       <div class="card-title">
         <h2>Today</h2>
-        <span class="badge-date" id="todayDate">2026-02-21</span>
+        <span class="badge-date" id="todayDate">—</span>
       </div>
 
       <div class="grid">
         <div class="metric">
-          <div class="value" id="mWeight">182.0</div>
+          <div class="value" id="mWeight">—</div>
           <div class="label">Weight (lbs)</div>
         </div>
         <div class="metric">
-          <div class="value" id="mCalories">2100</div>
+          <div class="value" id="mCalories">—</div>
           <div class="label">Calories</div>
         </div>
         <div class="metric">
-          <div class="value" id="mProtein">155</div>
+          <div class="value" id="mProtein">—</div>
           <div class="label">Protein (g)</div>
         </div>
       </div>
@@ -470,14 +468,14 @@ ez_bar_curl: 85x10</textarea>
       <div class="pill">
         <div class="left">
           <div class="icon">🏃</div>
-          <div class="text" id="runLine">easy · 3.5 mi · pace 10:51 · HR 153</div>
+          <div class="text" id="runLine">—</div>
         </div>
       </div>
 
       <div class="pill">
         <div class="left">
           <div class="icon">🏋️</div>
-          <div class="text" id="liftLine">bench_press, seated_row, leg_press, ez_bar_curl</div>
+          <div class="text" id="liftLine">—</div>
         </div>
       </div>
     </div>
@@ -486,13 +484,13 @@ ez_bar_curl: 85x10</textarea>
     <div class="card">
       <div class="card-title">
         <h2>Trends</h2>
-        <div class="subtitle">Last vs best (as history grows)</div>
+        <div class="subtitle">Event-based for runs/lifts (gaps don’t punish you)</div>
       </div>
 
       <div class="trend-row">
         <div>
           <div class="trend-title">Weight</div>
-          <div class="trend-meta" id="tWeightMeta">Last: 182.0 lbs · 7-day avg: 182.0 lbs · entries: 1</div>
+          <div class="trend-meta" id="tWeightMeta">—</div>
         </div>
         <div id="tWeightState" class="holding">Holding</div>
       </div>
@@ -500,7 +498,7 @@ ez_bar_curl: 85x10</textarea>
       <div class="trend-row">
         <div>
           <div class="trend-title">Run (pace @ avg HR ≤ 160)</div>
-          <div class="trend-meta" id="tRunMeta">Last qualifying: 2026-02-21 · pace 10:51 · HR 153</div>
+          <div class="trend-meta" id="tRunMeta">—</div>
         </div>
         <div id="tRunState" class="holding">Holding</div>
       </div>
@@ -508,7 +506,7 @@ ez_bar_curl: 85x10</textarea>
       <div class="trend-row">
         <div>
           <div class="trend-title">Bench</div>
-          <div class="trend-meta" id="tBenchMeta">Last: 234 (on 2026-02-21) · entries: 1</div>
+          <div class="trend-meta" id="tBenchMeta">—</div>
         </div>
         <div id="tBenchState" class="holding">Holding</div>
       </div>
@@ -520,8 +518,8 @@ ez_bar_curl: 85x10</textarea>
         <h2>Run Goals</h2>
         <div class="subtitle">Avg pace ≤ goal AND avg HR ≤ 160</div>
       </div>
-      <div class="goal">Goal 1: 9:30 /mi · Not yet</div>
-      <div class="goal">Goal 2: 9:00 /mi · Not yet</div>
+      <div class="goal" id="goal930">Goal 1: 9:30 /mi · —</div>
+      <div class="goal" id="goal900">Goal 2: 9:00 /mi · —</div>
     </div>
 
     <!-- BENCH GOALS -->
@@ -530,20 +528,121 @@ ez_bar_curl: 85x10</textarea>
         <h2>Bench Goals</h2>
         <div class="subtitle">1RM + milestones</div>
       </div>
-      <div class="goal">Estimated 1RM: <span class="mono">234</span></div>
-      <div class="goal">200 × 5+: <span class="mono">true</span></div>
-      <div class="goal">225 × 5+: <span class="mono">false</span></div>
+      <div class="goal" id="bench1rm">Estimated 1RM: —</div>
+      <div class="goal" id="bench200">200 × 5+: —</div>
+      <div class="goal" id="bench225">225 × 5+: —</div>
     </div>
   </div>
 
 <script>
-/* Collapsing import UX:
-   - After Import: collapse textarea+tip, leave compact Imported + Edit row.
-   - Edit expands it back. */
+/* ========== Utilities ========== */
+function clean(v){
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (s.toLowerCase() === "na") return null;
+  return s;
+}
+function num(v){
+  const s = clean(v);
+  if (s == null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function parseISODate(iso){
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  // Use UTC to avoid timezone off-by-one
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+}
+function daysBetweenUTC(a, b){
+  // b - a in days (a,b are Date objects)
+  const ms = b.getTime() - a.getTime();
+  return Math.round(ms / (1000*60*60*24));
+}
+function epley(w, r){ return Math.round(w * (1 + r / 30)); }
 
-function nowStamp() {
+function paceToSeconds(paceStr){
+  const s = clean(paceStr);
+  if (!s) return null;
+  const m = s.match(/^(\d+):([0-5]\d)$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+function secondsToPace(sec){
+  if (sec == null || !Number.isFinite(sec)) return null;
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+/* ========== Storage ========== */
+const STORAGE_KEY = "plog_days_v1";
+
+function loadDays(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
+function saveDays(arr){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+function upsertDay(entry){
+  const days = loadDays();
+  const idx = days.findIndex(d => d.date === entry.date);
+  if (idx >= 0) days[idx] = entry;
+  else days.push(entry);
+  days.sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  saveDays(days);
+  return days;
+}
+function latestDateFromDays(days){
+  if (!days.length) return null;
+  return days[days.length - 1].date || null;
+}
+
+/* ========== Parsing Snapshot ========== */
+function parseSnapshot(text){
+  const lines = text.split("\n").map(l => l.trim());
+  let section = null;
+
+  const day = {};
+  const run = {};
+  const lift = {};
+
+  // preferred: @day YYYY-MM-DD
+  const dm = text.match(/@day\s+(\d{4}-\d{2}-\d{2})/);
+  const date = dm ? dm[1] : (clean(day.date) || null);
+
+  for (const line of lines){
+    if (!line) continue;
+    if (line.startsWith("@")){
+      section = line.slice(1).trim().split(/\s+/)[0].toLowerCase();
+      continue;
+    }
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+
+    const k = line.slice(0, idx).trim();
+    const v = clean(line.slice(idx + 1).trim());
+    if (!k || v == null) continue;
+
+    if (section === "day") day[k] = v;
+    if (section === "run") run[k] = v;
+    if (section === "lift") lift[k] = v;
+  }
+
+  return { date: date || "—", day, run, lift };
+}
+
+/* ========== UI: Import collapse controls ========== */
+function nowStamp(){
   const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n) => String(n).padStart(2,"0");
   const yyyy = d.getFullYear();
   const mm = pad(d.getMonth()+1);
   const dd = pad(d.getDate());
@@ -553,34 +652,333 @@ function nowStamp() {
   const min = pad(d.getMinutes());
   return `${yyyy}-${mm}-${dd} · ${hh}:${min} ${ampm}`;
 }
+function collapseImport(){
+  document.getElementById("importCard").classList.add("is-collapsed");
+  document.getElementById("importedStamp").textContent = nowStamp();
+}
+function editImport(){
+  document.getElementById("importCard").classList.remove("is-collapsed");
+  setTimeout(() => document.getElementById("input").focus(), 150);
+}
 
+/* ========== Rendering: Today ========== */
+function renderToday(dayEntry){
+  document.getElementById("todayDate").textContent = dayEntry.date || "—";
+  document.getElementById("mWeight").textContent = (dayEntry.weight != null) ? dayEntry.weight.toFixed(1) : "—";
+  document.getElementById("mCalories").textContent = (dayEntry.calories != null) ? String(Math.round(dayEntry.calories)) : "—";
+  document.getElementById("mProtein").textContent = (dayEntry.protein != null) ? String(Math.round(dayEntry.protein)) : "—";
+
+  // run line (preserve exact pace string)
+  const r = dayEntry.run || {};
+  if (r.avg_pace || r.avg_hr || r.distance_mi || r.type){
+    const parts = [];
+    if (r.type) parts.push(r.type);
+    if (r.distance_mi != null) parts.push(`${r.distance_mi} mi`);
+    if (r.avg_pace) parts.push(`pace ${r.avg_pace}`);
+    if (r.avg_hr != null) parts.push(`HR ${r.avg_hr}`);
+    document.getElementById("runLine").textContent = parts.join(" · ");
+  } else {
+    document.getElementById("runLine").textContent = "—";
+  }
+
+  // lift line: list keys present
+  const liftKeys = [];
+  if (dayEntry.lift && typeof dayEntry.lift === "object"){
+    for (const k of Object.keys(dayEntry.lift)){
+      if (clean(dayEntry.lift[k]) != null) liftKeys.push(k);
+    }
+  }
+  document.getElementById("liftLine").textContent = liftKeys.length ? liftKeys.join(", ") : "—";
+}
+
+/* ========== Signals ========== */
+/*
+Rules:
+- Holding = label only (“Holding”)
+- Otherwise arrows only.
+- Green only for improving arrows.
+- Run improving = down arrow (pace drops)
+- Bench improving = up arrow (strength up)
+- Weight improving = down arrow (weight down vs avg)
+*/
+function setTrendState(elId, state){
+  // state: {kind:'holding'|'arrow', arrow:'↑'|'↓', improving:boolean}
+  const el = document.getElementById(elId);
+  el.className = ""; // reset
+
+  if (!state){
+    el.className = "holding";
+    el.textContent = "Holding";
+    return;
+  }
+
+  if (state.kind === "holding"){
+    el.className = "holding";
+    el.textContent = "Holding";
+    return;
+  }
+
+  el.className = "arrow" + (state.improving ? " green" : "");
+  el.textContent = state.arrow;
+}
+
+/* ========== Trends ========== */
+function renderTrends(days){
+  const latestISO = latestDateFromDays(days);
+  const latestD = parseISODate(latestISO);
+
+  // ----- WEIGHT (calendar-ish, but tolerant: last 7 observations) -----
+  const weightObs = days
+    .filter(d => d.weight != null && Number.isFinite(d.weight))
+    .slice(-7);
+
+  const weights = weightObs.map(d => d.weight);
+  const wLast = weights.length ? weights[weights.length - 1] : null;
+  const wAvg = weights.length ? (weights.reduce((a,b)=>a+b,0) / weights.length) : null;
+
+  if (wLast == null || wAvg == null){
+    document.getElementById("tWeightMeta").textContent = "No data yet.";
+    setTrendState("tWeightState", {kind:"holding"});
+  } else {
+    const tol = 0.2; // lbs
+    let state = {kind:"holding"};
+    if (wLast < wAvg - tol) state = {kind:"arrow", arrow:"↓", improving:true};        // improving
+    else if (wLast > wAvg + tol) state = {kind:"arrow", arrow:"↑", improving:false}; // regressing
+    document.getElementById("tWeightMeta").textContent =
+      `Last: ${wLast.toFixed(1)} lbs · 7-entry avg: ${wAvg.toFixed(1)} lbs · entries: ${weights.length}`;
+    setTrendState("tWeightState", state);
+  }
+
+  // ----- RUN (event-based; only advances on qualifying runs) -----
+  // qualifying = avg_hr <= 160 and avg_pace present
+  const qualifyingRuns = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
+    .map(d => ({
+      date: d.date,
+      dateObj: parseISODate(d.date),
+      avg_hr: d.run.avg_hr,
+      paceStr: d.run.avg_pace,
+      paceSec: paceToSeconds(d.run.avg_pace)
+    }))
+    .filter(r => r.dateObj && r.paceSec != null && Number.isFinite(r.avg_hr) && r.avg_hr <= 160)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  if (!qualifyingRuns.length){
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
+    setTrendState("tRunState", {kind:"holding"});
+  } else {
+    const last = qualifyingRuns[qualifyingRuns.length - 1];
+    const prev = qualifyingRuns.length >= 2 ? qualifyingRuns[qualifyingRuns.length - 2] : null;
+
+    // staleness
+    let stale = "";
+    if (latestD && last.dateObj){
+      const gap = daysBetweenUTC(last.dateObj, latestD);
+      stale = ` · ${gap}d ago`;
+    }
+
+    // event-based comparison: last vs previous qualifying run
+    let state = {kind:"holding"};
+    if (prev){
+      const tolSec = 5; // seconds
+      if (last.paceSec < prev.paceSec - tolSec) state = {kind:"arrow", arrow:"↓", improving:true};        // improving pace (lower)
+      else if (last.paceSec > prev.paceSec + tolSec) state = {kind:"arrow", arrow:"↑", improving:false}; // worse pace (higher)
+    }
+
+    document.getElementById("tRunMeta").textContent =
+      prev
+        ? `Last: ${last.date}${stale} · ${last.paceStr} @ HR ${last.avg_hr} | Prev: ${prev.paceStr} @ HR ${prev.avg_hr}`
+        : `Last: ${last.date}${stale} · ${last.paceStr} @ HR ${last.avg_hr} | Prev: —`;
+
+    setTrendState("tRunState", state);
+  }
+
+  // ----- BENCH (event-based; only advances on bench sessions) -----
+  const benchSessions = days
+    .filter(d => d.bench && d.bench.est1rm != null)
+    .map(d => ({
+      date: d.date,
+      dateObj: parseISODate(d.date),
+      est1rm: d.bench.est1rm
+    }))
+    .filter(b => b.dateObj && Number.isFinite(b.est1rm))
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  if (!benchSessions.length){
+    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+    setTrendState("tBenchState", {kind:"holding"});
+  } else {
+    const last = benchSessions[benchSessions.length - 1];
+    const prev = benchSessions.length >= 2 ? benchSessions[benchSessions.length - 2] : null;
+
+    // staleness
+    let stale = "";
+    if (latestD && last.dateObj){
+      const gap = daysBetweenUTC(last.dateObj, latestD);
+      stale = ` · ${gap}d ago`;
+    }
+
+    // event-based comparison: last vs previous bench session
+    let state = {kind:"holding"};
+    if (prev){
+      const tol = 1; // 1lb tolerance
+      if (last.est1rm > prev.est1rm + tol) state = {kind:"arrow", arrow:"↑", improving:true};          // improving strength
+      else if (last.est1rm < prev.est1rm - tol) state = {kind:"arrow", arrow:"↓", improving:false};   // worse
+    }
+
+    document.getElementById("tBenchMeta").textContent =
+      prev
+        ? `Last: ${last.date}${stale} · ${last.est1rm} | Prev: ${prev.est1rm}`
+        : `Last: ${last.date}${stale} · ${last.est1rm} | Prev: —`;
+
+    setTrendState("tBenchState", state);
+  }
+}
+
+/* ========== Goals ========== */
+function renderRunGoals(days){
+  // Use the most recent qualifying run (HR<=160) as the check, if present.
+  const runs = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null)
+    .map(d => ({
+      date: d.date,
+      hr: d.run.avg_hr,
+      paceSec: paceToSeconds(d.run.avg_pace)
+    }))
+    .filter(r => Number.isFinite(r.hr) && r.paceSec != null && r.hr <= 160)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const last = runs.length ? runs[runs.length - 1] : null;
+
+  function goalLine(goalPaceStr){
+    if (!last) return "—";
+    const goalSec = paceToSeconds(goalPaceStr);
+    if (goalSec == null) return "—";
+    return (last.paceSec <= goalSec) ? "Met ✓" : "Not yet";
+  }
+
+  document.getElementById("goal930").textContent = `Goal 1: 9:30 /mi · ${goalLine("9:30")}`;
+  document.getElementById("goal900").textContent = `Goal 2: 9:00 /mi · ${goalLine("9:00")}`;
+}
+
+function renderBenchGoalsFromLatest(days){
+  const benches = days
+    .filter(d => d.bench && d.bench.est1rm != null)
+    .sort((a,b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const last = benches.length ? benches[benches.length - 1] : null;
+
+  if (!last){
+    document.getElementById("bench1rm").textContent = "Estimated 1RM: —";
+    document.getElementById("bench200").textContent = "200 × 5+: —";
+    document.getElementById("bench225").textContent = "225 × 5+: —";
+    return;
+  }
+
+  document.getElementById("bench1rm").textContent = `Estimated 1RM: ${last.bench.est1rm}`;
+
+  // milestones require 5+ reps (already computed during import)
+  document.getElementById("bench200").textContent = `200 × 5+: ${last.bench.hit200 ? "true" : "false"}`;
+  document.getElementById("bench225").textContent = `225 × 5+: ${last.bench.hit225 ? "true" : "false"}`;
+}
+
+/* ========== Import Flow (main) ========== */
 function importData(){
-  const card = document.getElementById("importCard");
-  const stamp = document.getElementById("importedStamp");
-  stamp.textContent = nowStamp();
+  const text = document.getElementById("input").value;
+  const parsed = parseSnapshot(text);
 
-  // Collapse the import body
-  card.classList.add("is-collapsed");
+  // Build day entry
+  const entry = {
+    date: parsed.date,
+    weight: num(parsed.day.weight),
+    calories: num(parsed.day.calories),
+    protein: num(parsed.day.protein),
+    run: {
+      type: clean(parsed.run.type),
+      distance_mi: num(parsed.run.distance_mi),
+      duration: clean(parsed.run.duration),
+      avg_pace: clean(parsed.run.avg_pace), // keep string
+      avg_hr: num(parsed.run.avg_hr)
+    },
+    lift: parsed.lift || {},
+    bench: null
+  };
 
-  // Optional: scroll to Today so it feels like “import → review”
+  // Bench session summary (event-based)
+  if (parsed.lift && parsed.lift.bench_press){
+    const sets = String(parsed.lift.bench_press)
+      .split(",")
+      .map(s => s.trim())
+      .map(s => {
+        const m = s.match(/^(\d+)\s*x\s*(\d+)$/i);
+        if (!m) return null;
+        return { w: Number(m[1]), r: Number(m[2]) };
+      })
+      .filter(Boolean);
+
+    if (sets.length){
+      const est1rm = Math.max(...sets.map(s => epley(s.w, s.r)));
+      const hit200 = sets.some(s => s.w >= 200 && s.r >= 5);
+      const hit225 = sets.some(s => s.w >= 225 && s.r >= 5);
+      entry.bench = { est1rm, hit200, hit225 };
+    }
+  }
+
+  // Persist + render
+  const days = upsertDay(entry);
+
+  // Most recent day becomes Today
+  const latest = days[days.length - 1];
+  renderToday(latest);
+  renderTrends(days);
+  renderRunGoals(days);
+  renderBenchGoalsFromLatest(days);
+
+  collapseImport();
+
+  // Optional: scroll to Today after import
   setTimeout(() => {
     document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
   }, 250);
 }
 
-function editImport(){
-  const card = document.getElementById("importCard");
-  card.classList.remove("is-collapsed");
-
-  // Focus the textarea for quick edits
-  setTimeout(() => {
-    document.getElementById("input").focus();
-  }, 200);
-}
-
 function loadSample(){
-  // You can add multiple samples later; keeping minimal for now.
+  document.getElementById("input").value =
+`@day 2026-02-21
+weight: 182.0
+calories: 2100
+protein: 155
+
+@run
+type: easy
+distance_mi: 3.5
+duration: 38:00
+avg_pace: 10:51
+avg_hr: 153
+
+@lift
+bench_press: 200x5, 185x8
+seated_row: 160x8
+leg_press: 360x10
+ez_bar_curl: 85x10`;
 }
+
+/* ========== Init ========== */
+(function init(){
+  const days = loadDays();
+  if (!days.length){
+    // keep placeholders
+    document.getElementById("tWeightMeta").textContent = "No data yet.";
+    document.getElementById("tRunMeta").textContent = "No qualifying runs yet (avg HR ≤ 160).";
+    document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+    return;
+  }
+  const latest = days[days.length - 1];
+  renderToday(latest);
+  renderTrends(days);
+  renderRunGoals(days);
+  renderBenchGoalsFromLatest(days);
+})();
 </script>
 </body>
 </html>
