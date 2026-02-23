@@ -37,7 +37,7 @@ body{
     radial-gradient(900px 520px at 70% -220px, rgba(47,124,246,.10), transparent 65%),
     radial-gradient(1200px 700px at 50% -260px, #121c2a, transparent 65%),
     linear-gradient(rgba(11,15,20,.82), rgba(11,15,20,.92)),
-    url("runner-ecg-bg.png") center / cover no-repeat fixed,
+    url("runner-ecg-bg.png") center 65% / cover no-repeat fixed,
     var(--bg);
 }
 
@@ -565,43 +565,8 @@ button.danger:hover{ filter: brightness(1.06); }
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v1.1</div>
+        <div class="version">A2 · v1.2</div>
         <div class="last-import mono">Last import: <span id="lastImportTop">—</span></div>
-      </div>
-    </div>
-
-    <!-- IMPORT -->
-    <div class="card" id="importCard">
-      <div class="card-title">
-        <h2>Import</h2>
-        <div class="subtitle mono">(@day / @run / @lift)</div>
-      </div>
-
-      <div class="import-body" id="importBody">
-        <textarea id="input" class="mono" spellcheck="false">@day 2026-02-22
-weight: 181.0
-calories: 2100
-protein: 155</textarea>
-
-        <div class="actions">
-          <button class="primary" onclick="importData()">Import</button>
-          <button class="secondary" onclick="loadSample()">Load sample</button>
-        </div>
-
-        <div class="tip">
-          Tip: paste <b>one</b> day or <b>many</b> days at once. Use <code>na</code> for missing values.
-        </div>
-      </div>
-
-      <div class="import-collapsed-row" id="importCollapsedRow">
-        <div>
-          <div class="import-confirm">
-            <span class="confirm-dot"></span>
-            <span class="confirm-text" id="importedLabel">Imported</span>
-          </div>
-          <div class="confirm-sub mono" id="importedStamp">—</div>
-        </div>
-        <button class="ghost" onclick="editImport()">Edit</button>
       </div>
     </div>
 
@@ -699,6 +664,41 @@ protein: 155</textarea>
       <div class="goal" id="bench200">200 × 5+: —</div>
       <div class="goal" id="bench225">225 × 5+: —</div>
     </div>
+
+    <!-- IMPORT (moved to bottom) -->
+    <div class="card" id="importCard">
+      <div class="card-title">
+        <h2>Import</h2>
+        <div class="subtitle mono">(@day / @run / @lift)</div>
+      </div>
+
+      <div class="import-body" id="importBody">
+        <textarea id="input" class="mono" spellcheck="false">@day 2026-02-22
+weight: 181.0
+calories: 2100
+protein: 155</textarea>
+
+        <div class="actions">
+          <button class="primary" onclick="importData()">Import</button>
+          <button class="secondary" onclick="loadSample()">Load sample</button>
+        </div>
+
+        <div class="tip">
+          Tip: paste <b>one</b> day or <b>many</b> days at once. Use <code>na</code> for missing values.
+        </div>
+      </div>
+
+      <div class="import-collapsed-row" id="importCollapsedRow">
+        <div>
+          <div class="import-confirm">
+            <span class="confirm-dot"></span>
+            <span class="confirm-text" id="importedLabel">Imported</span>
+          </div>
+          <div class="confirm-sub mono" id="importedStamp">—</div>
+        </div>
+        <button class="ghost" onclick="editImport()">Edit</button>
+      </div>
+    </div>
   </div>
 
   <!-- HISTORY MODAL -->
@@ -782,7 +782,7 @@ const STORAGE_KEY = "plog_days_v1";
 const LAST_IMPORT_KEY = "plog_last_import_ms_v1";
 const MAX_HR_KEY = "plog_max_hr_v1";
 
-/* NOTE: settings UI removed; max_hr is still supported via localStorage.
+/* Settings UI removed; max_hr supported via localStorage.
    Default is 195 unless MAX_HR_KEY exists. */
 function getMaxHr(){
   const raw = localStorage.getItem(MAX_HR_KEY);
@@ -1169,7 +1169,6 @@ function renderTrends(days){
     const last5 = qualifyingRuns.slice(-5);
     const rolling5 = avg(last5.map(r => r.aei));
 
-    // Primary view: block comparison
     const last3 = qualifyingRuns.slice(-3);
     const prev3 = qualifyingRuns.slice(-6, -3);
 
