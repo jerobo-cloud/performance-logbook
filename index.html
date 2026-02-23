@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Performance Logbook</title>
+<title>The Foundation</title>
 
 <style>
 :root{
@@ -36,8 +36,9 @@ body{
     radial-gradient(900px 520px at 40% -140px, rgba(47,124,246,.20), transparent 60%),
     radial-gradient(900px 520px at 70% -220px, rgba(47,124,246,.10), transparent 65%),
     radial-gradient(1200px 700px at 50% -260px, #121c2a, transparent 65%),
-    linear-gradient(rgba(11,15,20,.82), rgba(11,15,20,.92)),
-    url("runner-ecg-bg.png") center 65% / cover no-repeat fixed,
+    linear-gradient(rgba(11,15,20,.78), rgba(11,15,20,.92)),
+    /* Move image UP (smaller % = higher) */
+    url("runner-ecg-bg.png") center 38% / cover no-repeat fixed,
     var(--bg);
 }
 
@@ -279,11 +280,14 @@ button.danger:hover{ filter: brightness(1.06); }
   background: rgba(255,255,255,.04);
 }
 
-/* Today metrics */
+/* Grids */
 .grid{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+.grid.status-grid{
+  grid-template-columns: repeat(3, 1fr);
 }
 .metric{
   background: rgba(255,255,255,.04);
@@ -312,6 +316,13 @@ button.danger:hover{ filter: brightness(1.06); }
   margin-top: 4px;
   color: var(--muted);
   font-size: 13px;
+}
+.subvalue{
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Pills */
@@ -560,21 +571,21 @@ button.danger:hover{ filter: brightness(1.06); }
     <div class="header">
       <div>
         <h1>Performance Logbook</h1>
-        <div class="subtitle">Paste nightly snapshot, import, review today &amp; trends.</div>
+        <div class="subtitle">Paste nightly snapshot, import, review status &amp; trends.</div>
       </div>
 
       <div class="status">
         <div class="pill-status"><span class="dot"></span> Live</div>
-        <div class="version">A2 · v1.2</div>
+        <div class="version">A2 · v1.3</div>
         <div class="last-import mono">Last import: <span id="lastImportTop">—</span></div>
       </div>
     </div>
 
-    <!-- TODAY -->
-    <div class="card today" id="todayCard">
+    <!-- CURRENT STATUS (top-focus) -->
+    <div class="card" id="statusCard">
       <div class="card-title">
-        <h2>Today</h2>
-        <span class="badge-date" id="actualTodayDate">—</span>
+        <h2>Current Status</h2>
+        <span class="badge-date mono" id="actualTodayDate">—</span>
       </div>
 
       <div class="snapshot-line">
@@ -582,16 +593,44 @@ button.danger:hover{ filter: brightness(1.06); }
         <span class="snapshot-chip mono">Last import: <span id="lastImportToday">—</span></span>
       </div>
 
+      <div class="grid status-grid">
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
+          <div class="value" id="sWeight">—</div>
+          <div class="label">Weight</div>
+          <div class="subvalue" id="sWeightSub">—</div>
+        </div>
+
+        <div class="metric clickable" onclick="openHistory('run')" title="View & edit run history">
+          <div class="value" id="sAEI">—</div>
+          <div class="label">AEI (rolling)</div>
+          <div class="subvalue" id="sAEISub">—</div>
+        </div>
+
+        <div class="metric clickable" onclick="openHistory('bench')" title="View & edit bench history">
+          <div class="value" id="sBench">—</div>
+          <div class="label">Bench 1RM</div>
+          <div class="subvalue" id="sBenchSub">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY (details) -->
+    <div class="card today" id="todayCard">
+      <div class="card-title">
+        <h2>Today</h2>
+        <span class="badge-date mono" id="todayChip">—</span>
+      </div>
+
       <div class="grid">
         <div class="metric clickable" onclick="openHistory('weight')" title="View & edit weight history">
           <div class="value" id="mWeight">—</div>
           <div class="label">Weight (lbs)</div>
         </div>
-        <div class="metric">
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit nutrition history">
           <div class="value" id="mCalories">—</div>
           <div class="label">Calories</div>
         </div>
-        <div class="metric">
+        <div class="metric clickable" onclick="openHistory('weight')" title="View & edit nutrition history">
           <div class="value" id="mProtein">—</div>
           <div class="label">Protein (g)</div>
         </div>
@@ -648,7 +687,7 @@ button.danger:hover{ filter: brightness(1.06); }
     <div class="card">
       <div class="card-title">
         <h2>Run Goals</h2>
-        <div class="subtitle">Rolling 5-run AEI must meet/exceed goal (HR ≤ 160)</div>
+        <div class="subtitle">Rolling 5-run AEI must meet/exceed goal (avg HR ≤ 160)</div>
       </div>
       <div class="goal" id="goal78">Goal 1: AEI 7.8 · —</div>
       <div class="goal" id="goal82">Goal 2: AEI 8.2 · —</div>
@@ -665,7 +704,7 @@ button.danger:hover{ filter: brightness(1.06); }
       <div class="goal" id="bench225">225 × 5+: —</div>
     </div>
 
-    <!-- IMPORT (moved to bottom) -->
+    <!-- IMPORT (bottom) -->
     <div class="card" id="importCard">
       <div class="card-title">
         <h2>Import</h2>
@@ -984,12 +1023,114 @@ function recomputeBench(entry){
   return entry;
 }
 
-/* ========== Rendering: Today ========== */
-function renderTodayFromLatest(dayEntry){
-  document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
-  document.getElementById("snapshotDate").textContent = dayEntry.date || "—";
-  renderLastImport();
+/* ========== Rendering: Current Status ========== */
+function renderCurrentStatus(days){
+  // Snapshot date is latest imported day
+  const latestISO = latestDateFromDays(days);
+  document.getElementById("snapshotDate").textContent = latestISO || "—";
 
+  // Today chips
+  const today = deviceISODateLocal();
+  document.getElementById("actualTodayDate").textContent = today;
+  document.getElementById("todayChip").textContent = today;
+
+  // Weight: latest available
+  const weightEntries = days
+    .filter(d => d.date && d.weight != null && Number.isFinite(d.weight))
+    .slice()
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  const latestWeight = weightEntries.length ? weightEntries.at(-1) : null;
+
+  document.getElementById("sWeight").textContent = latestWeight ? `${latestWeight.weight.toFixed(1)}` : "—";
+
+  // Weight sub: last completed week avg (with >=3 weigh-ins)
+  const MIN_WEIGHINS_PER_WEEK = 3;
+  const latestD = latestISO ? parseISODate(latestISO) : null;
+
+  const buckets = new Map();
+  for (const d of weightEntries){
+    const wk = weekStartMondayISO(d.date);
+    if (!wk) continue;
+    if (!buckets.has(wk)) buckets.set(wk, {sum:0, count:0});
+    const b = buckets.get(wk);
+    b.sum += d.weight;
+    b.count += 1;
+  }
+  const weeks = Array.from(buckets.entries())
+    .map(([weekStart, b]) => ({ weekStart, avg: b.sum/b.count, count: b.count }))
+    .sort((a,b)=> (a.weekStart > b.weekStart ? 1 : a.weekStart < b.weekStart ? -1 : 0));
+
+  let lastCompletedWeekStart = null;
+  if (latestD){
+    const dow = latestD.getUTCDay(); // Sun=0
+    const dayMon0 = (dow + 6) % 7;
+    const currentWeekMonday = new Date(latestD);
+    currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
+    const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
+
+    // If latest day is Sunday, that week is complete. Otherwise, last completed is previous Monday.
+    if (dow === 0) lastCompletedWeekStart = currentWeekStartISO;
+    else {
+      const prevWeekMonday = new Date(currentWeekMonday);
+      prevWeekMonday.setUTCDate(currentWeekMonday.getUTCDate() - 7);
+      lastCompletedWeekStart = isoFromUTCDate(prevWeekMonday);
+    }
+  }
+
+  const completedWeeks = weeks.filter(w => !lastCompletedWeekStart || w.weekStart <= lastCompletedWeekStart);
+  let lastGood = null;
+  for (let i = completedWeeks.length - 1; i >= 0; i--){
+    if (completedWeeks[i].count >= MIN_WEIGHINS_PER_WEEK){ lastGood = completedWeeks[i]; break; }
+  }
+
+  document.getElementById("sWeightSub").textContent = lastGood
+    ? `Last wk avg ${lastGood.avg.toFixed(1)} (n=${lastGood.count})`
+    : (weightEntries.length ? `Need ${MIN_WEIGHINS_PER_WEEK}+ weigh-ins in a completed week` : "No weight yet");
+
+  // AEI: rolling 5-run avg (qualifying HR<=160)
+  const maxHr = getMaxHr();
+  const RUN_HR_CAP = 160;
+
+  const qualifyingRuns = days
+    .filter(d => d.run && d.run.avg_pace && d.run.avg_hr != null && d.date)
+    .map(d => {
+      const paceSec = paceToSeconds(d.run.avg_pace);
+      const aei = computeAEI(paceSec, d.run.avg_hr, maxHr);
+      return { date: d.date, aei, pace: d.run.avg_pace, hr: d.run.avg_hr };
+    })
+    .filter(r => r.aei != null && Number.isFinite(r.hr) && r.hr <= RUN_HR_CAP)
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+  const lastRun = qualifyingRuns.length ? qualifyingRuns.at(-1) : null;
+  const last5 = qualifyingRuns.slice(-5);
+  const rolling5 = (last5.length === 5) ? avg(last5.map(r => r.aei)) : null;
+
+  document.getElementById("sAEI").textContent = rolling5 != null ? rolling5.toFixed(2) : "—";
+  if (!qualifyingRuns.length){
+    document.getElementById("sAEISub").textContent = "No qualifying runs yet";
+  } else if (rolling5 == null){
+    document.getElementById("sAEISub").textContent = `Need ${5 - last5.length} more qualifying run(s)`;
+  } else {
+    document.getElementById("sAEISub").textContent = lastRun
+      ? `Last ${lastRun.aei.toFixed(2)} · ${lastRun.date}`
+      : "—";
+  }
+
+  // Bench: latest 1RM
+  const benchSessions = days
+    .filter(d => d.bench && d.bench.est1rm != null && d.date)
+    .slice()
+    .sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  const lastBench = benchSessions.length ? benchSessions.at(-1) : null;
+
+  document.getElementById("sBench").textContent = lastBench ? String(lastBench.bench.est1rm) : "—";
+  document.getElementById("sBenchSub").textContent = lastBench
+    ? `200x5 ${lastBench.bench.hit200 ? "yes" : "no"} · 225x5 ${lastBench.bench.hit225 ? "yes" : "no"}`
+    : "No bench yet";
+}
+
+/* ========== Rendering: Today details ========== */
+function renderTodayFromLatest(dayEntry){
   document.getElementById("mWeight").textContent = (dayEntry.weight != null) ? dayEntry.weight.toFixed(1) : "—";
   document.getElementById("mCalories").textContent = (dayEntry.calories != null) ? String(Math.round(dayEntry.calories)) : "—";
   document.getElementById("mProtein").textContent = (dayEntry.protein != null) ? String(Math.round(dayEntry.protein)) : "—";
@@ -1076,7 +1217,6 @@ function renderTrends(days){
     const dayMon0 = (dow + 6) % 7;
     const currentWeekMonday = new Date(latestD);
     currentWeekMonday.setUTCDate(latestD.getUTCDate() - dayMon0);
-
     const currentWeekStartISO = isoFromUTCDate(currentWeekMonday);
 
     if (dow === 0){
@@ -1316,7 +1456,7 @@ function renderHistory(mode){
 
   if (mode === "weight"){
     title.textContent = "Weight History";
-    sub.textContent = "Edit a date’s weight. (No penalty for missing days.)";
+    sub.textContent = "Edit a date’s weight, calories, and protein.";
     rows = days.filter(d => d.weight != null || d.calories != null || d.protein != null);
   }
   if (mode === "run"){
@@ -1572,23 +1712,37 @@ function deleteCategory(mode, date){
 
 /* ========== Refresh helper ========== */
 function refreshAll(days){
+  // Always update these UI pieces
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  document.getElementById("todayChip").textContent = deviceISODateLocal();
   renderLastImport();
 
   if (!days || !days.length){
     document.getElementById("snapshotDate").textContent = "—";
+
+    document.getElementById("sWeight").textContent = "—";
+    document.getElementById("sAEI").textContent = "—";
+    document.getElementById("sBench").textContent = "—";
+    document.getElementById("sWeightSub").textContent = "No data yet";
+    document.getElementById("sAEISub").textContent = "No data yet";
+    document.getElementById("sBenchSub").textContent = "No data yet";
+
     document.getElementById("tWeightMeta").textContent = "No data yet.";
     document.getElementById("tRunMeta").textContent = "No qualifying runs yet (needs pace + avg HR ≤ 160).";
     document.getElementById("tBenchMeta").textContent = "No bench data yet.";
+
     setTrendState("tWeightState", {kind:"holding"});
     setTrendState("tRunState", {kind:"holding"});
     setTrendState("tBenchState", {kind:"holding"});
+
     renderRunGoals([]);
     renderBenchGoalsFromLatest([]);
     return;
   }
 
   const latest = days.slice().sort((a,b)=> (a.date > b.date ? 1 : a.date < b.date ? -1 : 0)).at(-1);
+
+  renderCurrentStatus(days);
   renderTodayFromLatest(latest);
   renderTrends(days);
   renderRunGoals(days);
@@ -1625,7 +1779,7 @@ function importData(){
   collapseImport(label);
 
   setTimeout(() => {
-    document.getElementById("todayCard").scrollIntoView({behavior:"smooth", block:"start"});
+    document.getElementById("statusCard").scrollIntoView({behavior:"smooth", block:"start"});
   }, 250);
 }
 
@@ -1653,6 +1807,7 @@ ez_bar_curl: 85x10`;
 /* ========== Init ========== */
 (function init(){
   document.getElementById("actualTodayDate").textContent = deviceISODateLocal();
+  document.getElementById("todayChip").textContent = deviceISODateLocal();
   renderLastImport();
   const days = loadDays();
   refreshAll(days);
